@@ -1,0 +1,7 @@
+[alias]
+build-riscv = "build --target riscv64gc-unknown-none-elf"
+
+[target.riscv64gc-unknown-none-elf]
+rustflags = [
+    "-C", "force-frame-pointers=yes",
+]

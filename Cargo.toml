@@ -1,0 +1,18 @@
+[package]
+name = "odin-kernel"
+version = "0.1.0"
+edition = "2021"
+authors = ["Nate Walker <@nwalker85>"]
+description = "Odin OS: Sovereign Capability Microkernel & Wordline Gated Silicon Runtime"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+lto = true
+codegen-units = 1
+
+[lib]
+crate-type = ["lib", "staticlib"]
