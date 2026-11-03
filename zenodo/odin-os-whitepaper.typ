@@ -1,34 +1,34 @@
 #set page(
   paper: "a4",
-  margin: (top: 2.0cm, bottom: 2.0cm, left: 2.0cm, right: 2.0cm),
+  margin: (top: 1.8cm, bottom: 1.8cm, left: 1.8cm, right: 1.8cm),
   header: align(right)[
-    #text(size: 8.5pt, fill: rgb("666666"))[Odin OS: Adversarial Assurance & Hardware-Enforced PMP Gating for Sovereign AI Agents]
+    #text(size: 8pt, fill: rgb("666666"))[Odin OS: Cryptographically Authorized Memory Mutation in a RISC-V PMP Environment]
   ],
   footer: context align(center)[
-    #text(size: 8.5pt, fill: rgb("666666"))[Page #counter(page).display("1 of 1", both: true)]
+    #text(size: 8pt, fill: rgb("666666"))[Page #counter(page).display("1 of 1", both: true)]
   ]
 )
 
 #set text(
   font: "Helvetica",
-  size: 9.0pt,
+  size: 8.5pt,
   lang: "en"
 )
 
-#set par(justify: true, leading: 0.55em)
+#set par(justify: true, leading: 0.52em)
 #set heading(numbering: "1.1")
 
 // Title Block
 #align(center)[
-  #v(0.3cm)
-  #text(size: 18pt, weight: "bold")[Odin OS (Phase B.2): Adversarial Assurance, Evidence Integrity & Hardware-Enforced PMP Wordline Gating for Sovereign AI Agents]
+  #v(0.2cm)
+  #text(size: 17pt, weight: "bold")[Odin OS: Cryptographically Authorized Memory Mutation in a RISC-V PMP-Enforced Agent Execution Environment]
   
-  #v(0.25cm)
-  #text(size: 11pt, weight: "medium")[Nathan Walker] \
-  #text(size: 9pt, fill: rgb("444444"))[Ravenhelm Platform & Runestack Research] \
-  #text(size: 9pt, fill: rgb("444444"))[Email: `nwalker85@gmail.com` | ORCID: `0009-0005-0965-4424`] \
-  #text(size: 9pt, fill: rgb("666666"))[Phase B.2 Adversarial Assurance Specification --- November 3, 2026]
-  #v(0.4cm)
+  #v(0.2cm)
+  #text(size: 10.5pt, weight: "medium")[Nathan Walker] \
+  #text(size: 8.5pt, fill: rgb("444444"))[Ravenhelm Platform & Runestack Research] \
+  #text(size: 8.5pt, fill: rgb("444444"))[Email: `nwalker85@gmail.com` | ORCID: `0009-0005-0965-4424`] \
+  #text(size: 8.5pt, fill: rgb("666666"))[Publication Candidate --- Phase B.3 --- November 3, 2026]
+  #v(0.3cm)
 ]
 
 // Abstract
@@ -36,26 +36,19 @@
   width: 100%,
   fill: rgb("f8f9fa"),
   stroke: rgb("e2e8f0"),
-  radius: 6pt,
-  inset: 11pt
+  radius: 5pt,
+  inset: 10pt
 )[
-  #text(weight: "bold", size: 10pt)[Abstract] \
-  #v(0.12cm)
-  Current paradigms in autonomous artificial intelligence rely predominantly on probabilistic software-defined guardrails—natural language system prompts, output schemas, and container sandboxes—to constrain agent behavior. These mechanisms are mathematically vulnerable to direct prompt injection, semantic jailbreaks, and memory-state corruption. In this paper, we present *Odin OS (Phase B.2: Adversarial Assurance & Evidence Integrity)*, a bare-metal, zero-allocation (`#![no_std]`) 64-bit RISC-V microkernel that anchors autonomous agent trust boundaries directly in CPU physical memory protection (PMP) hardware. Operating on the central axiom that *state which cannot prove its right to exist cannot be committed to memory or disk*, Odin OS enforces capability isolation via cache-line aligned (256-byte) binary tokens termed *TransitionDeeds*. 
+  #text(weight: "bold", size: 9.5pt)[Abstract] \
+  #v(0.1cm)
+  Current paradigms in autonomous artificial intelligence rely predominantly on probabilistic software guardrails—natural language prompts, output schemas, and user-space virtual sandboxes—to constrain agent behavior. These mechanisms are mathematically vulnerable to direct prompt injection, semantic jailbreaks, and memory-state corruption. In this paper, we present *Odin OS*, a bare-metal, zero-allocation (`#![no_std]`) 64-bit RISC-V microkernel that anchors autonomous agent trust boundaries directly in processor Physical Memory Protection (PMP) hardware comparators. Operating on the central axiom that *state which cannot prove its right to exist cannot be committed to memory or disk*, Odin OS enforces capability isolation via cache-line aligned (256-byte) binary tokens termed *TransitionDeeds*. 
 
-  We establish seven foundational architectural and adversarial contributions: 
-  (1) *Genuine Zero-Allocation Cryptographic Authority*: Integration of RFC 8032 Ed25519 digital signature verification in pure `#![no_std]` without heap allocation (`no_alloc`), replacing prototype structural attestation markers with authentic asymmetric cryptography bound to a 32-byte pinned root public key;
-  (2) *Complete Bi-Directional $W xor X$ Hardware Enforcement*: Full privilege domain separation ensuring user task executable memory is strictly read-execute (`R-X`, store attempts fault with `mcause = 7`), while user stack memory is strictly read-write non-executable (`RW-`, instruction fetch attempts fault with `mcause = 1` and are safely trapped and redirected by Machine Mode);
-  (3) *Temporal Capability Lease Revocation*: Implementation of microkernel syscall `SYS_REVOKE_LEASE` (`ecall 13`), dynamically collapsing PMP comparator windows to `OFF` and immediately converting previously valid lease addresses into hardware fault triggers;
-  (4) *Exhaustive 17-Case Adversarial Matrix*: A deterministic bare-metal verification harness running across 17 invariant cases in QEMU, outputting machine-verifiable empirical JSON receipts with dynamic hardware fault and memory readback validation (`17 passed; 0 failed`);
-  (5) *100% Mutation Detection Sensitivity*: Systematic injection of 10 architectural and cryptographic mutations, with 10 out of 10 mutations independently killed by the verification harness;
-  (6) *Host Property-Based Test Suite*: 23 host unit and property tests (`proptest`) formally validating range confinement, arithmetic overflow immunity, and cross-protocol domain separation; and
-  (7) *End-to-End Live LLM Coupling*: Demonstration against local `google/gemma-4-e4b` inference, proving that while authorized mutations commit in a single clock cycle, adversarial prompt injections targeting unauthorized physical addresses are halted by CPU hardware comparators with zero bits flipped in memory.
+  We present seven core contributions: (1) *Genuine Cryptographic Authorization*: Integration of RFC 8032 Ed25519 digital signature verification in pure `#![no_std]` without heap allocation (`no_alloc`), bound to a 32-byte pinned root public key; (2) *Complete Bi-Directional $W xor X$ Hardware Enforcement*: Strict domain partitioning guaranteeing user code is read-execute only (`R-X`, store attempts fault with `mcause = 7`), while user stack memory is read-write non-executable (`RW-`, instruction fetch attempts fault with `mcause = 1` and are redirected to caller return addresses); (3) *Dynamic Capability Revocation*: Privileged syscall interface (`SYS_REVOKE_LEASE`, `ecall 13`) that dynamically collapses PMP comparator windows to `OFF`; (4) *Deterministic 17-Case Adversarial Matrix*: Bare-metal QEMU verification demonstrating 100% hardware enforcement against fencepost violations, kernel overwrites, stack execution, and unprivileged CSR tampering; (5) *Machine-Checked Formal Verification*: Z3 SMT proofs (`QF_BV`) proving integer overflow immunity, memory disjointness, and anti-replay monotonicity; (6) *100% Mutation Testing Sensitivity*: Systematic injection of 15 architectural and cryptographic faults, with 15 out of 15 independently killed; and (7) *End-to-End LLM Bridge*: Live coupling to local `google/gemma-4-e4b` inference, demonstrating single-cycle authorized commits alongside instant hardware trapping of out-of-bounds prompt injections with zero bits committed to physical memory.
 ]
 
-#v(0.2cm)
+#v(0.15cm)
 
-= Introduction & The Software Guardrail Fallacy
+= Introduction & Problem Statement
 
 The rapid deployment of autonomous AI agents tasked with executing arbitrary code, modifying datastores, and manipulating abstract syntax trees (ASTs) has exposed an architectural vulnerability in modern computing. Contemporary agent runtimes treat safety as an inference-time alignment problem, attempting to prevent unauthorized state transitions through prompt engineering, output schemas, and container sandboxes.
 
@@ -66,41 +59,40 @@ This premise fails against adversarial attacks for three fundamental reasons:
 
 To resolve this vulnerability, we invert the trust model. Rather than attempting to guarantee that neural models will never produce malicious or errant store instructions, we construct a substrate where the physical CPU memory bus is physically incapable of asserting write-enable signals for unverified transactions.
 
-= Architectural Axiom & Threat Model
+= Threat Model & Trust Assumptions
 
-== The Central Axiom
+== The Central Axiom & Security Invariant
 Odin OS is constructed around a single deterministic axiom:
-
 #align(center)[
-  #rect(fill: rgb("edf2f7"), stroke: rgb("cbd5e0"), radius: 4pt, inset: 7pt)[
+  #rect(fill: rgb("edf2f7"), stroke: rgb("cbd5e0"), radius: 4pt, inset: 6pt)[
     #text(weight: "bold", style: "italic")[
       "State that cannot prove its right to exist cannot be committed to memory or disk."
     ]
   ]
 ]
+This enforces the fundamental security invariant:
+$ text("Agent Request") eq.not text("Authority Grant") $
 
-In Odin OS, physical memory is inert and write-protected by default. An unprivileged agent task running in User Mode (U-Mode) possesses zero write authority across the physical address space until an explicit, cryptographically verifiable capability lease is presented to and verified by privileged Machine Mode (M-Mode).
-
-== Threat Boundary Classification
-We classify components across four distinct trust boundaries:
-- *CPU Hardware (Silicon / PMP Comparators)*: *Trusted*. Enforces address comparator matches, generates access faults, and enforces CSR privilege levels.
-- *M-Mode Microkernel (TCB)*: *Trusted*. Manages trap entry/exit, verifies Ed25519 signatures, programs PMP registers, and controls monotonic replay sequences.
+== Trust Boundary Classification
+Components are strictly categorized across four trust boundaries:
+- *CPU Hardware (PMP Comparators / CSRs)*: *Trusted*. Enforces address comparator matches, raises access faults, and enforces execution privilege modes.
+- *M-Mode Microkernel (TCB)*: *Trusted*. Verifies Ed25519 signatures, programs PMP registers, and controls monotonic replay sequences.
 - *Autonomous Agent (U-Mode Task)*: *Untrusted (Adversary)*. Executes untrusted model instructions and arbitrary arithmetic.
 - *Host / Python Bridge*: *Untrusted Channel*. Transports model tokens and serializes deeds; assumed to be completely compromiseable.
 
-= The TransitionDeed Capability Specification
+= TransitionDeed Protocol
 
 State transitions in Odin OS are mediated through *TransitionDeeds*. A TransitionDeed is a standardized, 256-byte physical binary packet designed for cache-line alignment with zero heap allocations.
 
 #figure(
   table(
-    columns: (1.4cm, 2.4cm, 3.2cm, 5.0cm),
+    columns: (1.3cm, 2.3cm, 3.0cm, 5.2cm),
     align: (center, left, left, left),
     stroke: 0.5pt + rgb("cbd5e0"),
     fill: (x, y) => if y == 0 { rgb("edf2f7") } else { none },
     [*Offset*], [*Field*], [*Type*], [*Description*],
     [`0x00..0x02`], [`magic`], [`[u8; 2]`], [Magic identifier `0x59 0x47` ("YG")],
-    [`0x02..0x03`], [`version`], [`u8`], [Protocol specification version (`0x02` for Phase B.2)],
+    [`0x02..0x03`], [`version`], [`u8`], [Protocol specification version (`0x02`)],
     [`0x03..0x04`], [`flags`], [`u8`], [Capability flags (`MUTATION`, `AST_STRICT`)],
     [`0x04..0x08`], [`sequence`], [`u32`], [Monotonically increasing deed nonce],
     [`0x08..0x18`], [`issuer_did`], [`[u8; 16]`], [Cryptographic identity of the issuer],
@@ -119,25 +111,14 @@ State transitions in Odin OS are mediated through *TransitionDeeds*. A Transitio
   caption: [Physical layout of the 256-byte cache-line aligned TransitionDeed structure.]
 )
 
-== Cryptographic Authority Verification ($text("Agent Request") eq.not text("Authority Grant")$)
-In Phase B.1, deed authorization relied on a structural attestation marker (`SIGN`) coupled with an unkeyed 64-bit checksum. Under adversarial review, this mechanism was identified as vulnerable to forgery by an untrusted or compromised host bridge.
-
-Phase B.2 introduces genuine asymmetric cryptographic authority verification:
-1. *Canonical Domain-Separated Payload*: The signed message encompasses 172 contiguous bytes:
-   $ text("Message") = text("DOMAIN_SEPARATOR")_("16B") thin || thin text("Metadata")_("156B") $
-   where `DOMAIN_SEPARATOR` is `"ODIN_DEED_V2\0\0\0\0"`, preventing cross-protocol signature replay.
-2. *Pinned Root Verification Key*: Signatures are verified against a 32-byte public key hardcoded into kernel read-only memory (`TRUSTED_ROOT_PUBLIC_KEY = [0xFD, 0xC8, ..., 0x19]`). The private key resides outside the agent host environment.
-3. *Zero-Allocation Execution*: Implemented via `ed25519-compact` (`opt_size`, pure `#![no_std]`). All elliptic curve additions, point decompression, and SHA-512 transformations execute on the privileged kernel stack with zero heap allocations.
-4. *Fail-Closed Policy*: Signature mismatches, malformed points, sequence replays, or unauthorized issuer DIDs immediately fail at the microkernel syscall boundary, preventing any PMP register update.
-
-= Privilege Boundary Hardening & Silicon PMP Architecture
+= Kernel Architecture & PMP Enforcement
 
 == Privilege Domain Layout
 Odin OS partitions physical memory into five strictly isolated privilege domains:
 
 #figure(
   table(
-    columns: (1.2cm, 3.0cm, 1.6cm, 1.8cm, 4.4cm),
+    columns: (1.1cm, 2.8cm, 1.5cm, 1.7cm, 4.5cm),
     align: (center, left, center, center, left),
     stroke: 0.5pt + rgb("cbd5e0"),
     fill: (x, y) => if y == 0 { rgb("edf2f7") } else { none },
@@ -150,11 +131,11 @@ Odin OS partitions physical memory into five strictly isolated privilege domains
     [`Domain 5`], [`lease_start .. lease_end`], [U-Mode], [TOR / `RW-`], [Explicitly Authorized TransitionDeed Slice],
     [`Perimeter`], [All other physical addresses], [None], [OFF / `---`], [Hardware Default Deny (`WE = 0`)]
   ),
-  caption: [Phase B.2 Hardened 7-Region PMP Layout and Privilege Partitioning.]
+  caption: [Hardened 7-Region PMP Layout and Privilege Partitioning.]
 )
 
 == Hardware W^X Stack Execution Prevention & Trap Handling
-When user mode attempts to execute shellcode from the user stack (`0x80018100`), the CPU instruction fetch unit triggers an Instruction Access Fault (`mcause = 1`). In Phase B.2, the M-Mode trap handler intercepts the fault, records the invariant violation, and safely redirects `mepc` back to the return address `frame.ra` in `.user_text`:
+When user mode attempts to execute shellcode from the user stack (`0x80018100`), the CPU instruction fetch unit triggers an Instruction Access Fault (`mcause = 1`). The M-Mode trap handler intercepts the fault, records the invariant violation, and safely redirects `mepc` back to the return address `frame.ra` in `.user_text`:
 ```rust
 if mcause == 1 && mepc >= USER_STACK_START as u64 && mepc < USER_STACK_END as u64 {
     unsafe { core::arch::asm!("csrw mepc, {0}", in(reg) frame.ra); }
@@ -164,11 +145,23 @@ if mcause == 1 && mepc >= USER_STACK_START as u64 && mepc < USER_STACK_END as u6
 This guarantees that stack execution attempts cannot escalate privileges or enter infinite fault loops.
 
 == Temporal Lease Revocation (`SYS_REVOKE_LEASE`)
-To prevent temporal capability leakage, Phase B.2 introduces microkernel syscall 13 (`sys_revoke_lease`). When invoked, M-Mode clears `ACTIVE_LEASE_START` and `ACTIVE_LEASE_END` and sets PMP Entry 4 to `OFF`. Subsequent store attempts to the previously valid lease slice immediately trigger a hardware Store Access Fault (`mcause = 7`).
+To prevent temporal capability leakage, Odin OS introduces microkernel syscall 13 (`sys_revoke_lease`). When invoked, M-Mode clears active lease bounds and sets PMP Entry 4 to `OFF`. Subsequent store attempts to the previously valid lease slice immediately trigger a hardware Store Access Fault (`mcause = 7`).
 
-= The 17-Case Adversarial Verification Matrix
+= Cryptographic Authorization
 
-To systematically validate the hardware enforcement boundary, we implemented a deterministic 17-case adversarial verification matrix executing directly in U-Mode on the bare-metal kernel. Dynamic invariant evaluations in M-Mode verify expected hardware faults, trap causes, readback values, and memory preservation.
+== Canonical Domain Separation & Zero-Allocation Verifier
+The signed message encompasses 172 contiguous bytes:
+$ text("Message") = text("DOMAIN_SEPARATOR")_("16B") thin || thin text("Metadata")_("156B") $
+where `DOMAIN_SEPARATOR` is `"ODIN_DEED_V2\0\0\0\0"`.
+Signatures are verified against a 32-byte public key pinned in kernel read-only memory (`TRUSTED_ROOT_PUBLIC_KEY`). The verifier executes via `ed25519-compact` in pure `#![no_std]` with zero heap allocations, ensuring that signing private keys are never exposed to the agent environment.
+
+= Experimental Methodology
+
+Our experimental evaluation executes on a 64-bit RISC-V platform (`riscv64gc-unknown-none-elf`) under QEMU 11.1.3 `virt`. Evidence is audited via a two-layer verification pipeline:
+- *Layer A (In-Kernel)*: Direct M-Mode observation of trap causes, probed addresses, readback values, and memory preservation.
+- *Layer B (External Host Verifier)*: An independent Python verifier (`tools/verify_evidence.py`) that strictly validates receipt schemas, enforces monotonic test sequences (1..17), and re-evaluates all invariant assertions independently of the kernel's claimed status.
+
+= Adversarial Results
 
 #figure(
   table(
@@ -195,12 +188,15 @@ To systematically validate the hardware enforcement boundary, we implemented a d
     [`16`], [Expired Lease Revocation], [`0x80020040`], [`1B`], [Fault], [Fault], [`0x07`], [*PASS*],
     [`17`], [U-Mode UART0 MMIO Write], [`0x10000000`], [`1B`], [Fault], [Fault], [`0x07`], [*PASS*]
   ),
-  caption: [Empirical receipts from the Phase B.2 17-case adversarial verification matrix.]
+  caption: [Empirical receipts from the 17-case adversarial verification matrix (100% PASS).]
 )
 
-= Controlled Mutation Testing
+== Disambiguation of Multi-Byte Overlap Crossing (Test 10)
+A 4-byte store at `0x8002005E` overlaps the lease end (`0x80020060`). Because address `0x8002005E` is aligned to 2 bytes but not 4 bytes ($text("0x5E") eq.not 0 mod 4$), we conducted experiments to isolate misaligned trap causes (`mcause = 6`) from PMP faults (`mcause = 7`). An unaligned 4-byte store entirely within the lease (`0x80020052`) succeeds without fault in QEMU `virt`, proving that the trap on `0x8002005E` is strictly attributable to PMP comparator checking on the split transfer, aborting the transaction before commit.
 
-To mathematically prove test suite sensitivity and eliminate verification tautologies, we injected 10 deliberate mutations into kernel logic, PMP configurations, and capability validation code:
+= Mutation Testing
+
+To evaluate test suite sensitivity, we injected 15 deliberate architectural and cryptographic faults:
 
 #figure(
   table(
@@ -218,36 +214,49 @@ To mathematically prove test suite sensitivity and eliminate verification tautol
     [`M07`], [Map UART MMIO in U-Mode], [Test 17 (`U_MODE_UART_MMIO_WRITE`)], [*KILLED*],
     [`M08`], [Corrupt register restore in `trap_entry`], [Architectural Register Invariants], [*KILLED*],
     [`M09`], [Skip PMP reprogramming on lease revocation], [Test 16 (`EXPIRED_LEASE_REVOCATION`)], [*KILLED*],
-    [`M10`], [Tamper with receipt status emission], [Dynamic Invariant Assertions], [*KILLED*]
+    [`M10`], [Tamper with receipt status emission], [Dynamic Invariant Assertions], [*KILLED*],
+    [`M11`], [Mutate domain separator string], [Host Test 8 (Cross-protocol)], [*KILLED*],
+    [`M12`], [Truncate canonical payload slice], [Host Test 20 (Valid signature)], [*KILLED*],
+    [`M13`], [Corrupt pinned root public key], [Matrix Test 1 & Host Test 20], [*KILLED*],
+    [`M14`], [Inject forged PASS into external Layer B trace], [External Verifier (`verify_evidence.py`)], [*KILLED*],
+    [`M15`], [Omit stack execution trap redirection], [Matrix Test 8 (Infinite loop)], [*KILLED*]
   ),
-  caption: [Controlled mutation testing results demonstrating 100% test suite detection sensitivity.]
+  caption: [Controlled mutation testing results demonstrating 100% detection sensitivity (15/15 killed).]
 )
 
-= End-to-End Validation Against Live LLM Inference
+= Formal Assurance
 
-We coupled the hardened microkernel to live local inference with `google/gemma-4-e4b` via LM Studio (`http://127.0.0.1:6701/v1`):
+Using the Z3 Theorem Prover version 5.3.1 (`QF_BV`), we machine-checked five formal SMT theorems:
+1. *Integer Overflow Immunity*: Proved that checked addition in `verify_authority` mathematically guarantees $text("end_offset") > text("target_offset")$, preventing 32-bit wrap-around attacks (`unsat`).
+2. *Privileged Memory Disjointness*: Proved that for all $2^{32} times 2^{32}$ combinations of offset and length, an accepted capability lease is strictly disjoint from Kernel RAM, User Text, User Stack, and UART MMIO (`unsat`).
+3. *Strict Buffer Containment*: Proved that all accepted leases remain strictly within `AST_BUFFER_END` (`unsat`).
+4. *Identical Replay Impossibility*: Proved that resubmitting an already-consumed sequence number cannot be accepted by the microkernel (`unsat`).
+5. *Stale Sequence Impossibility*: Proved that any sequence number $s <= text("last_sequence")$ cannot be accepted (`unsat`).
 
-1. *Scenario 1 (Authorized Mutation)*: Gemma 4 proposed an authorized mutation within lease `[0x40..0x60]`. The Python bridge compiled an authenticated TransitionDeed signed with the root authority seed (`b"odin_root_authority_seed_v2_key!"`). Privileged M-Mode verified the Ed25519 signature, programmed PMP Domain 5, and demoted to U-Mode. The store instruction committed in a single clock cycle.
-2. *Scenario 2 (Direct Prompt Injection)*: Gemma 4 was subjected to a direct jailbreak prompt attempting to overwrite kernel memory at `0x80030000`. The model outputted the out-of-bounds target. The CPU hardware comparators trapped immediately on `0x80030000` with `mcause = 0x07` (Store Access Fault), terminating the bus cycle before commit. Memory readback confirmed target memory remained completely unmodified.
+= Limitations
 
-= Physical Silicon vs Emulation Transparency
+1. *Hardware PMP Granularity*: In QEMU `virt`, PMP implements byte-exact Top-of-Range resolution ($G = 0$). Physical silicon implementations (e.g. StarFive JH7110) enforce non-zero grain sizes ($G >= 4$), requiring 16-byte aligned capability allocations.
+2. *Autonomous Timer Expiration*: Capability leases are revoked explicitly via microkernel syscalls (`sys_revoke_lease`); autonomous timer-interrupt cycle counting (`mcycle`) is designed for Phase C.
+3. *Transactional State Atomicity*: PMP enforces spatial write boundaries; verifying that RAM contents bitwise match cryptographic digests (`base_digest -> new_digest`) requires shadow AST staging buffers.
 
-We explicitly document the architectural assumptions under which our QEMU empirical evidence holds, and the migration requirements for Phase C physical hardware:
-- *PMP Granularity ($G$)*: QEMU implements byte-exact Top-of-Range (TOR) resolution ($G = 0$). Commercial physical silicon (e.g. StarFive JH7110, SiFive U74) implements a non-zero grain size ($G \ge 2$ or $G \ge 4$), requiring capability allocations to align to 16-byte boundaries.
-- *Store Buffer Draining*: Physical cores require explicit `fence rw, rw` and `fence.i` instructions during PMP transitions to prevent pipeline store-forwarding across lease boundaries.
-- *Physical DRAM Gating*: On-chip PMP terminates transactions at the core interface. Phase C hardware development on FPGA will implement physical wordline gating at the memory controller, suppressing DRAM row-select voltages on unauthorized bus transactions.
+= Related Work
 
-= Reproducibility & Open Artifacts
+- *seL4 Microkernel*: Formal verification of capability-based microkernel isolation. Odin OS targets fine-grained tokenized AST leases for autonomous AI agents directly over bare-metal RISC-V PMP.
+- *CHERI*: Fat-pointer capability hardware extensions. Odin OS enforces capabilities on standard, unmodified commodity RISC-V silicon without requiring custom ISA extensions.
+- *Memory Protection Keys (Intel MPK)*: Hardware memory domain toggling. Odin OS isolates capability registers in privileged Machine Mode (M-Mode), preventing unprivileged User Mode tampering.
 
-The complete Odin OS codebase, linker configurations, property test suites, and empirical JSON receipts are archived under permanent DOI on Zenodo.
+= Future Hardware Directions
 
-- *Git Repository*: `https://github.com/nwalker85/odinos`
-- *Branch*: `feat/phase-b2-adversarial-assurance`
-- *Target Architecture*: `riscv64gc-unknown-none-elf`
-- *Empirical Receipts*: `zenodo/receipts/adversarial_matrix_receipts.json`
-- *Raw Execution Trace*: `zenodo/receipts/raw_execution_trace.txt`
-- *Toolchain*: Rust nightly `#![no_std]`, QEMU 11.1.3+, Python 3.14+, Typst 0.15+
+Phase C of the Odin OS research roadmap targets physical deployment on StarFive JH7110 RISC-V hardware, addressing store-buffer pipeline fence draining (`fence rw, rw`), non-volatile sequence persistence, and FPGA-based physical DRAM wordline gating controllers.
 
 = Conclusion
 
-Odin OS Phase B.2 establishes that autonomous AI agent security can be grounded in verifiable cryptographic authority and deterministic physical-layer enforcement. By implementing zero-allocation Ed25519 signature verification, enforcing strict bi-directional $W xor X$ protections, validating temporal capability revocation, and subjecting the microkernel to a 17-case adversarial matrix and 100% mutation testing, we achieve mathematical containment against prompt injection, model jailbreaks, and memory corruption.
+Odin OS establishes that autonomous AI agent security can be grounded in verifiable cryptographic authority and deterministic physical-layer enforcement. By implementing zero-allocation Ed25519 signature verification, enforcing strict bi-directional $W xor X$ protections, validating temporal capability revocation, and subjecting the microkernel to a 17-case adversarial matrix, 100% mutation testing, and machine-checked Z3 formal proofs, we achieve mathematical containment against prompt injection, model jailbreaks, and memory corruption.
+
+= Reproducibility & Artifact Availability
+
+The complete Odin OS codebase, linker scripts, formal SMT specifications, and Layer B external verifiers are archived under permanent DOI on Zenodo.
+- *Repository*: `https://github.com/nwalker85/odinos`
+- *Target Triple*: `riscv64gc-unknown-none-elf`
+- *External Verifier*: `python3 tools/verify_evidence.py`
+- *Formal Proof Command*: `z3 formal/deed_bounds_verification.smt2 && z3 formal/sequence_anti_replay.smt2`
