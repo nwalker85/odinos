@@ -27,7 +27,7 @@
   #text(size: 10.5pt, weight: "medium")[Nathan Walker] \
   #text(size: 8.5pt, fill: rgb("444444"))[Ravenhelm Platform & Runestack Research] \
   #text(size: 8.5pt, fill: rgb("444444"))[Email: `nwalker85@gmail.com` | ORCID: `0009-0005-0965-4424`] \
-  #text(size: 8.5pt, fill: rgb("666666"))[Publication Candidate --- Phase B.3 --- November 3, 2026]
+  #text(size: 8.5pt, fill: rgb("666666"))[Publication Release Candidate --- Phase B.3.1 --- November 3, 2026]
   #v(0.3cm)
 ]
 
@@ -74,11 +74,12 @@ This enforces the fundamental security invariant:
 $ text("Agent Request") eq.not text("Authority Grant") $
 
 == Trust Boundary Classification
-Components are strictly categorized across four trust boundaries:
-- *CPU Hardware (PMP Comparators / CSRs)*: *Trusted*. Enforces address comparator matches, raises access faults, and enforces execution privilege modes.
-- *M-Mode Microkernel (TCB)*: *Trusted*. Verifies Ed25519 signatures, programs PMP registers, and controls monotonic replay sequences.
-- *Autonomous Agent (U-Mode Task)*: *Untrusted (Adversary)*. Executes untrusted model instructions and arbitrary arithmetic.
-- *Host / Python Bridge*: *Untrusted Channel*. Transports model tokens and serializes deeds; assumed to be completely compromiseable.
+Components are strictly categorized across five trust boundaries:
+- *Policy Decision Point (PDP)*: *Trusted Authority*. Evaluates agent mutation requests against declarative security policies, manages monotonic sequence counters, and holds the root Ed25519 signing key. Never delegates authority back to the agent or bridge.
+- *CPU Hardware (PMP Comparators / CSRs)*: *Trusted Enforcer*. Enforces address comparator matches, raises access faults, and enforces execution privilege modes.
+- *M-Mode Microkernel (TCB)*: *Trusted Verifier & Enforcer*. Verifies Ed25519 signatures against the pinned root public key, programs PMP registers, and controls monotonic replay sequences.
+- *Autonomous Agent (U-Mode Task)*: *Untrusted (Adversary)*. Executes untrusted model instructions and arbitrary arithmetic. Possesses zero signing keys and zero capability to modify PMP registers.
+- *Host / Python Bridge*: *Untrusted Transport Channel*. Transports model tokens and capability requests; possesses zero private keys and is assumed to be completely compromiseable.
 
 = TransitionDeed Protocol
 
@@ -147,7 +148,19 @@ This guarantees that stack execution attempts cannot escalate privileges or ente
 == Temporal Lease Revocation (`SYS_REVOKE_LEASE`)
 To prevent temporal capability leakage, Odin OS introduces microkernel syscall 13 (`sys_revoke_lease`). When invoked, M-Mode clears active lease bounds and sets PMP Entry 4 to `OFF`. Subsequent store attempts to the previously valid lease slice immediately trigger a hardware Store Access Fault (`mcause = 7`).
 
-= Cryptographic Authorization
+= Cryptographic Authorization & Authority Isolation
+
+== Independent Policy Decision Point (PDP) Architecture
+In compliance with the invariant $text("Agent Request") eq.not text("Authority Grant")$, Odin OS strictly decouples agent token generation from cryptographic signing. The private signing key (`_ROOT_SEED`) is isolated within an independent host-side Policy Decision Point service (`pdp_authority_service.py`). Neither the untrusted agent nor the communication bridge possesses access to private key material.
+
+When an agent proposes a state mutation, the request is evaluated against a default-deny policy registry enforcing:
+1. *Identity Verification*: Pre-registered agent DIDs with explicit capability delegations.
+2. *AST Anchor Validation*: Verification that the target anchor belongs to the agent's authorized scope.
+3. *Spatial Lease Clamping*: Strict validation that requested offsets and mutation lengths reside within pre-configured upper and lower bounds.
+4. *Temporal Bounding*: Enforced caps on requested execution cycle lifetimes.
+5. *Monotonic Sequence Allocation*: Monotonically increasing sequence counters assigned strictly upon policy approval.
+
+Only requests satisfying all five criteria are signed. Denied requests yield zero signed deed bytes and emit structured denial receipts. In empirical testing across 10 mandatory attack vectors (unauthorized anchors, invalid opcodes, oversized mutations, excessive lease durations, rogue agent identities, out-of-bounds offsets, zero-length mutations, post-sign tampering, and replay attempts), the PDP successfully rejected 100% of adversarial requests with zero false grants.
 
 == Canonical Domain Separation & Zero-Allocation Verifier
 The signed message encompasses 172 contiguous bytes:
@@ -191,8 +204,19 @@ Our experimental evaluation executes on a 64-bit RISC-V platform (`riscv64gc-unk
   caption: [Empirical receipts from the 17-case adversarial verification matrix (100% PASS).]
 )
 
-== Disambiguation of Multi-Byte Overlap Crossing (Test 10)
-A 4-byte store at `0x8002005E` overlaps the lease end (`0x80020060`). Because address `0x8002005E` is aligned to 2 bytes but not 4 bytes ($text("0x5E") eq.not 0 mod 4$), we conducted experiments to isolate misaligned trap causes (`mcause = 6`) from PMP faults (`mcause = 7`). An unaligned 4-byte store entirely within the lease (`0x80020052`) succeeds without fault in QEMU `virt`, proving that the trap on `0x8002005E` is strictly attributable to PMP comparator checking on the split transfer, aborting the transaction before commit.
+== Architectural Analysis of Multi-Byte Overlap Crossing (Test 10)
+A 4-byte store at `0x8002005E` straddles the lease boundary (`0x80020060`), with bytes `[0x5E..0x5F]` inside the lease and `[0x60..0x61]` outside. Because `0x8002005E` is 2-byte aligned but not 4-byte aligned ($text("0x5E") eq.not 0 mod 4$), this instruction tests hardware behavior across an asymmetric protection boundary.
+
+Under the *RISC-V Unprivileged Architecture Specification (Section 2.6)*:
+#align(center)[
+  #text(style: "italic")[
+    "Misaligned memory accesses are not guaranteed to be atomic."
+  ]
+]
+
+In our QEMU 11.1.3 `virt` evaluation, the processor performs address checking across split memory accesses prior to retiring the store, raising a Store Access Fault (`mcause = 7`) and leaving target memory unmodified (`0x00`). We verified that an unaligned 4-byte store entirely within the lease (`0x80020052`) succeeds without fault, proving that QEMU supports unaligned accesses and that the fault at `0x8002005E` is triggered solely by the PMP boundary violation.
+
+*Physical Silicon Implication*: While software simulation in QEMU enforces all-or-nothing rollback on this split access, physical RISC-V microarchitectures are not architecturally bound by the base ISA to guarantee atomicity for misaligned stores. A physical core may either trap with `mcause = 6` (Store Address Misaligned) or commit the lower bytes before triggering a PMP fault on the upper half. Consequently, Odin OS establishes the architectural requirement that robust production deployments must couple PMP hardware fences with software-level staging buffers (shadow ASTs) to ensure strict transaction atomicity across arbitrary silicon implementations.
 
 = Mutation Testing
 
@@ -247,7 +271,9 @@ Using the Z3 Theorem Prover version 5.3.1 (`QF_BV`), we machine-checked five for
 
 = Future Hardware Directions
 
-Phase C of the Odin OS research roadmap targets physical deployment on StarFive JH7110 RISC-V hardware, addressing store-buffer pipeline fence draining (`fence rw, rw`), non-volatile sequence persistence, and FPGA-based physical DRAM wordline gating controllers.
+Phase C of the Odin OS research roadmap targets physical deployment on physical silicon and reconfigurable logic platforms:
+- *AMD Kria KV260 FPGA/MPSoC*: Dual-rail architecture integrating ARM Cortex-A53 application cores with programmable logic (PL) for hardware-accelerated AST graph traversal, direct AXI memory interlocks, and cryptographic digest hashing engines.
+- *Physical RISC-V Silicon*: Deployment on 64-bit RISC-V application platforms (e.g., Microchip PolarFire SoC, StarFive JH7110), addressing store-buffer pipeline fence draining (`fence rw, rw`), non-volatile sequence persistence in secure EEPROM/NVRAM, and hardware timer interrupt cycle bounds (`mcycle`).
 
 = Conclusion
 
