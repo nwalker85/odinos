@@ -1,14 +1,15 @@
 {
   "metadata": {
-    "title": "Odin OS (Phase B.2): Adversarial Assurance, Evidence Integrity & Hardware-Enforced PMP Wordline Gating for Sovereign AI Agents",
+    "title": "Odin OS: Cryptographically Authorized Memory Mutation in a RISC-V PMP-Enforced Agent Execution Environment",
     "upload_type": "publication",
     "publication_type": "technicalnote",
-    "description": "<p><strong>Odin OS (Phase B.2: Adversarial Assurance & Evidence Integrity)</strong> is a bare-metal, zero-allocation (<code>#![no_std]</code>) 64-bit RISC-V microkernel that anchors autonomous AI agent capability boundaries directly into physical silicon memory protection hardware. Operating on the central axiom that <em>state that cannot prove its right to exist cannot be committed</em>, Odin OS enforces capability containment via cache-line aligned 256-byte binary tokens termed <code>TransitionDeeds</code>.</p><p>Phase B.2 establishes genuine zero-allocation Ed25519 asymmetric cryptographic authority verification against a pinned root public key, bi-directional W^X hardware memory enforcement, temporal capability lease revocation, a deterministic 17-case adversarial verification matrix, and 100% mutation testing sensitivity. The publication includes machine-verifiable JSON receipts and empirical proof executing against local neural inference on <code>google/gemma-4-e4b</code>: authorized mutations commit in a single clock cycle, while adversarial prompt injection jailbreaks trigger hardware Store Access Faults (<code>mcause = 0x07</code>), leaving zero bits flipped in physical memory.</p>",
+    "description": "<p><strong>Odin OS (Phase B.3.2 Publication Release Candidate)</strong> is a bare-metal, zero-allocation (<code>#![no_std]</code>) 64-bit RISC-V microkernel that anchors autonomous AI agent capability boundaries in processor Physical Memory Protection (PMP) comparators. Operating on the central axiom that <em>state which cannot prove its right to exist cannot be committed to memory or disk</em>, Odin OS enforces capability containment via cache-line aligned 256-byte binary tokens termed <code>TransitionDeeds</code>.</p><p>This publication release establishes: (1) decoupled Policy Decision Point (PDP) authority isolation supporting both deterministic research fixtures (Mode A) and independently provisioned keys (Mode B); (2) zero-allocation RFC 8032 Ed25519 digital signature verification in pure <code>#![no_std]</code> against a pinned 32-byte root public key; (3) bi-directional W^X memory configuration; (4) dynamic capability lease revocation (<code>SYS_REVOKE_LEASE</code>); (5) a 17-case adversarial matrix under QEMU evaluation; (6) machine-checked formal SMT models via Z3 5.3.1 for bounded integer overflow immunity, memory disjointness, and anti-replay sequence monotonicity; (7) mutation testing sensitivity (15/15 killed); (8) independent Layer B host verification; and (9) end-to-end coupling with local neural inference on <code>google/gemma-4-e4b</code>.</p>",
     "creators": [
       {
         "name": "Walker, Nathan",
         "affiliation": "Ravenhelm Platform & Runestack",
-        "email": "nwalker85@gmail.com"
+        "email": "nwalker85@gmail.com",
+        "orcid": "0009-0005-0965-4424"
       }
     ],
     "access_right": "open",
@@ -17,12 +18,14 @@
       "RISC-V",
       "Operating Systems",
       "Physical Memory Protection",
-      "Hardware Wordline Gating",
+      "PMP",
       "AI Safety",
       "Autonomous Agents",
       "Microkernel",
       "Gemma 4",
-      "Prompt Injection Containment"
+      "Capability-Based Security",
+      "Formal Verification",
+      "SMT"
     ],
     "related_identifiers": [
       {
