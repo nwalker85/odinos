@@ -1,0 +1,54 @@
+{
+  "timestamp": 1793724780.410262,
+  "target_phase": "B.3.2",
+  "gates": {
+    "Host Unit Tests (23 cases)": "PASS",
+    "Microkernel Compilation (riscv64gc)": "PASS",
+    "QEMU Adversarial Matrix (17 cases)": "PASS",
+    "Authority Isolation Suite (12 cases)": "PASS",
+    "Adversarial Verifier Audit (10 cases)": "PASS",
+    "Layer B External Verifier Audit": "PASS",
+    "Formal SMT Proof 1 (Bounds)": "PASS",
+    "Formal SMT Proof 2 (Anti-Replay)": "PASS",
+    "Deterministic Whitepaper PDF Compilation": "PASS"
+  },
+  "artifact_hashes": {
+    "kernel_elf": {
+      "path": "target/riscv64gc-unknown-none-elf/release/odin-kernel",
+      "sha256": "5d914428e7343bfe0e4499e119240fb22c5e014b5ca3595530d909e8c53b6ce1"
+    },
+    "whitepaper_typ": {
+      "path": "zenodo/odin-os-whitepaper.typ",
+      "sha256": "c183c8dd314496ac4977b7b27f91102750494f1d2137768b700f023a46c46ce7"
+    },
+    "whitepaper_pdf": {
+      "path": "zenodo/odin-os-whitepaper.pdf",
+      "sha256": "28f62e14bbb670e0efd7f5aa058c3d782adb6cc315f23ce948251b35cb43e167"
+    },
+    "zenodo_json": {
+      "path": "zenodo/zenodo.json",
+      "sha256": "b1cac35bad767f406bf0ff675dbd50213cf1f3f6b39169dfba0b562ce1f1a2d1"
+    },
+    "cargo_lock": {
+      "path": "Cargo.lock",
+      "sha256": "2b55b9d0b2079d5837e7c1209af5130d6b488c6efc2fb1bccde40bb1db6046f2"
+    },
+    "bounds_smt": {
+      "path": "formal/deed_bounds_verification.smt2",
+      "sha256": "f582d2a80a2edb4f0f0100d929a3b29413f4991a9676653cd9d6b57c35853e09"
+    },
+    "replay_smt": {
+      "path": "formal/sequence_anti_replay.smt2",
+      "sha256": "99504b5c97aebd6b92b335dccb155b4e867d3fd7731f74b42d7e218add4dde09"
+    },
+    "receipts_json": {
+      "path": "zenodo/receipts/adversarial_matrix_receipts.json",
+      "sha256": "a3c5abc7ffaa67705875c15ba964cebe9a970406f3e4b27c5cbed38e869fd1d6"
+    },
+    "raw_trace": {
+      "path": "zenodo/receipts/raw_execution_trace.txt",
+      "sha256": "fef3815426fa6430356e3154633b22eca105ffd70c5fad6c0878e10745ceb06e"
+    }
+  },
+  "decision": "GO"
+}

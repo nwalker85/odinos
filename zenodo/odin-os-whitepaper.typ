@@ -278,7 +278,7 @@ By combining zero-allocation Ed25519 signature verification, bi-directional $W x
 
 = Reproducibility & Artifact Availability
 
-The complete Odin OS codebase, linker scripts, formal SMT specifications, and Layer B external verifiers are archived under permanent DOI on Zenodo.
+The complete Odin OS codebase, linker scripts, formal SMT specifications, and Layer B external verifiers are open-source and prepared for immutable archival on Zenodo upon publication release candidate acceptance.
 - *Repository*: `https://github.com/nwalker85/odinos`
 - *Target Triple*: `riscv64gc-unknown-none-elf`
 - *External Verifier*: `python3 tools/verify_evidence.py`
