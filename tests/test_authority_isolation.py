@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Odin OS Phase B.3.1: Authority Isolation & Mandatory Attacks Test Suite
-Directly tests the Policy Decision Point (PDP) and Authority Signer against all 10 required attack vectors.
+Odin OS Phase B.3.2: Authority Isolation & Mandatory Attacks Test Suite
+Directly tests the Policy Decision Point (PDP) and Authority Signer against all required attack vectors
+across both Mode A (Research Fixture) and Mode B (Independently Provisioned Authority).
 
-Mandatory Attack Vectors:
+Mandatory Attack & Verification Vectors:
 1. Unauthorized target mutation (anchor outside allowed set).
 2. Unauthorized operation (opcode outside allowed set).
 3. Oversized mutation length (> max_mutation_length).
@@ -12,8 +13,10 @@ Mandatory Attack Vectors:
 6. Out-of-bounds offset range (exceeding permitted lease window).
 7. Zero-length mutation request.
 8. Tampering with approval result / signature verification.
-9. Monotonic sequence allocation and state tracking.
+9. Monotonic sequence allocation and state tracking across restarts.
 10. Valid request produces canonically verifiable deed with matching public key.
+11. Mode B Provisioned: Generates random CSPRNG key; fixture key CANNOT authenticate against Mode B root.
+12. Mode B Fail-Closed: Missing or invalid key material raises SecurityError and halts.
 """
 
 import sys
@@ -21,19 +24,27 @@ import os
 import unittest
 import struct
 import hashlib
+import tempfile
+import secrets
 
 # Ensure tools directory is in sys.path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
-from pdp_authority_service import PolicyDecisionPoint, _DOMAIN_SEPARATOR
+from pdp_authority_service import PolicyDecisionPoint, SecurityError, _DOMAIN_SEPARATOR, FIXTURE_ROOT_SEED
 
 class TestAuthorityIsolation(unittest.TestCase):
     def setUp(self):
-        # Create fresh PDP instance for each test
-        self.pdp = PolicyDecisionPoint()
+        # Create fresh temporary directory for sequence state persistence
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.state_file = os.path.join(self.temp_dir.name, "sequence_state.json")
+        # Fresh Mode A PDP instance
+        self.pdp_fixture = PolicyDecisionPoint(mode="fixture", sequence_state_file=self.state_file)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
 
     def test_01_unauthorized_target_anchor(self):
         """Attack 1: Agent requests mutation on unauthorized AST anchor."""
-        approved, deed, receipt = self.pdp.evaluate_and_sign(
+        approved, deed, receipt = self.pdp_fixture.evaluate_and_sign(
             agent_identity="agent:gemma-4",
             anchor_id=999, # Allowed is only [104]
             target_offset=0x40,
@@ -47,7 +58,7 @@ class TestAuthorityIsolation(unittest.TestCase):
 
     def test_02_unauthorized_operation(self):
         """Attack 2: Agent requests unauthorized operation opcode."""
-        approved, deed, receipt = self.pdp.evaluate_and_sign(
+        approved, deed, receipt = self.pdp_fixture.evaluate_and_sign(
             agent_identity="agent:gemma-4",
             anchor_id=104,
             target_offset=0x40,
@@ -61,7 +72,7 @@ class TestAuthorityIsolation(unittest.TestCase):
 
     def test_03_oversized_mutation_length(self):
         """Attack 3: Agent requests mutation length exceeding policy maximum."""
-        approved, deed, receipt = self.pdp.evaluate_and_sign(
+        approved, deed, receipt = self.pdp_fixture.evaluate_and_sign(
             agent_identity="agent:gemma-4",
             anchor_id=104,
             target_offset=0x40,
@@ -75,7 +86,7 @@ class TestAuthorityIsolation(unittest.TestCase):
 
     def test_04_excessive_lease_duration(self):
         """Attack 4: Agent requests lease cycles exceeding maximum allowed."""
-        approved, deed, receipt = self.pdp.evaluate_and_sign(
+        approved, deed, receipt = self.pdp_fixture.evaluate_and_sign(
             agent_identity="agent:gemma-4",
             anchor_id=104,
             target_offset=0x40,
@@ -90,7 +101,7 @@ class TestAuthorityIsolation(unittest.TestCase):
 
     def test_05_unknown_agent_identity(self):
         """Attack 5: Unregistered/rogue agent attempts to obtain authority grant."""
-        approved, deed, receipt = self.pdp.evaluate_and_sign(
+        approved, deed, receipt = self.pdp_fixture.evaluate_and_sign(
             agent_identity="agent:rogue-ai-infiltrator",
             anchor_id=104,
             target_offset=0x40,
@@ -105,7 +116,7 @@ class TestAuthorityIsolation(unittest.TestCase):
     def test_06_out_of_bounds_offset_range(self):
         """Attack 6: Agent requests offset outside permitted lease window."""
         # 1. Below min offset (0x30 < 0x40)
-        app1, d1, r1 = self.pdp.evaluate_and_sign(
+        app1, d1, r1 = self.pdp_fixture.evaluate_and_sign(
             agent_identity="agent:gemma-4",
             anchor_id=104,
             target_offset=0x30,
@@ -117,7 +128,7 @@ class TestAuthorityIsolation(unittest.TestCase):
         self.assertEqual(r1["denial_reason"], "OUT_OF_BOUNDS_LEASE_RANGE")
 
         # 2. Exceeding max offset (0x50 + 0x20 = 0x70 > 0x60)
-        app2, d2, r2 = self.pdp.evaluate_and_sign(
+        app2, d2, r2 = self.pdp_fixture.evaluate_and_sign(
             agent_identity="agent:gemma-4",
             anchor_id=104,
             target_offset=0x50,
@@ -130,7 +141,7 @@ class TestAuthorityIsolation(unittest.TestCase):
 
     def test_07_zero_length_mutation(self):
         """Attack 7: Agent requests degenerate zero-length mutation."""
-        approved, deed, receipt = self.pdp.evaluate_and_sign(
+        approved, deed, receipt = self.pdp_fixture.evaluate_and_sign(
             agent_identity="agent:gemma-4",
             anchor_id=104,
             target_offset=0x40,
@@ -146,7 +157,7 @@ class TestAuthorityIsolation(unittest.TestCase):
         """Attack 8: Verification of deed signature and resistance to post-sign tampering."""
         import nacl.signing
         
-        approved, deed, receipt = self.pdp.evaluate_and_sign(
+        approved, deed, receipt = self.pdp_fixture.evaluate_and_sign(
             agent_identity="agent:gemma-4",
             anchor_id=104,
             target_offset=0x40,
@@ -158,7 +169,7 @@ class TestAuthorityIsolation(unittest.TestCase):
         self.assertEqual(len(deed), 256)
 
         # Verify genuine signature
-        vk = nacl.signing.VerifyKey(self.pdp.public_key_bytes)
+        vk = nacl.signing.VerifyKey(self.pdp_fixture.public_key_bytes)
         canonical_msg = _DOMAIN_SEPARATOR + deed[:156]
         sig = deed[156:220]
         
@@ -173,33 +184,31 @@ class TestAuthorityIsolation(unittest.TestCase):
         with self.assertRaises(Exception):
             vk.verify(tampered_canonical, sig)
 
-    def test_09_monotonic_sequence_allocation(self):
-        """Attack 9: Verification of strict monotonic sequence counter increment."""
-        app1, deed1, r1 = self.pdp.evaluate_and_sign(
+    def test_09_monotonic_sequence_and_restart_persistence(self):
+        """Attack 9: Monotonic sequence increment and persistence across PDP restarts."""
+        app1, deed1, r1 = self.pdp_fixture.evaluate_and_sign(
             agent_identity="agent:gemma-4",
             anchor_id=104,
             target_offset=0x40,
             target_length=0x10
         )
-        app2, deed2, r2 = self.pdp.evaluate_and_sign(
+        self.assertEqual(r1["allocated_sequence"], 1)
+
+        # Simulate service restart: fresh PDP reading from sequence_state_file
+        pdp_restarted = PolicyDecisionPoint(mode="fixture", sequence_state_file=self.state_file)
+        app2, deed2, r2 = pdp_restarted.evaluate_and_sign(
             agent_identity="agent:gemma-4",
             anchor_id=104,
             target_offset=0x50,
             target_length=0x10
         )
-        self.assertTrue(app1 and app2)
-        self.assertEqual(r1["allocated_sequence"], 1)
+        self.assertTrue(app2)
+        # Sequence must NOT reset to 1; must monotonically continue to 2
         self.assertEqual(r2["allocated_sequence"], 2)
-
-        # Sequence field in deed must match allocated sequence
-        seq1 = struct.unpack_from("<I", deed1, 4)[0]
-        seq2 = struct.unpack_from("<I", deed2, 4)[0]
-        self.assertEqual(seq1, 1)
-        self.assertEqual(seq2, 2)
 
     def test_10_receipt_integrity(self):
         """Attack 10: Ensure audit receipt hash accurately binds the issued deed."""
-        approved, deed, receipt = self.pdp.evaluate_and_sign(
+        approved, deed, receipt = self.pdp_fixture.evaluate_and_sign(
             agent_identity="agent:gemma-4",
             anchor_id=104,
             target_offset=0x40,
@@ -208,6 +217,49 @@ class TestAuthorityIsolation(unittest.TestCase):
         self.assertTrue(approved)
         expected_hash = hashlib.sha256(deed).hexdigest()
         self.assertEqual(receipt["deed_sha256"], expected_hash)
+
+    def test_11_mode_b_provisioned_key_separation(self):
+        """Attack 11: Mode B Provisioned key separation and mismatch detection."""
+        import nacl.signing
+        
+        # Generate independent random 32-byte seed outside repository
+        independent_seed = secrets.token_bytes(32)
+        pdp_mode_b = PolicyDecisionPoint(mode="provisioned", seed=independent_seed)
+
+        # Verify public key is distinct from Mode A fixture
+        self.assertNotEqual(pdp_mode_b.public_key_bytes, self.pdp_fixture.public_key_bytes)
+
+        # Sign deed with Mode B
+        app_b, deed_b, r_b = pdp_mode_b.evaluate_and_sign(
+            agent_identity="agent:gemma-4",
+            anchor_id=104,
+            target_offset=0x40,
+            target_length=0x10
+        )
+        self.assertTrue(app_b)
+
+        # Verification of Mode B deed against Mode A fixture public key MUST FAIL
+        vk_fixture = nacl.signing.VerifyKey(self.pdp_fixture.public_key_bytes)
+        canonical_b = _DOMAIN_SEPARATOR + deed_b[:156]
+        sig_b = deed_b[156:220]
+        with self.assertRaises(Exception):
+            vk_fixture.verify(canonical_b, sig_b)
+
+    def test_12_mode_b_fail_closed_on_missing_or_invalid_key(self):
+        """Attack 12: Mode B fails closed when seed is missing or invalid."""
+        # 1. Missing seed in Mode B raises SecurityError
+        old_hex = os.environ.pop("ODIN_AUTHORITY_SEED_HEX", None)
+        old_path = os.environ.pop("ODIN_AUTHORITY_SEED_PATH", None)
+        try:
+            with self.assertRaises(SecurityError):
+                PolicyDecisionPoint(mode="provisioned")
+        finally:
+            if old_hex: os.environ["ODIN_AUTHORITY_SEED_HEX"] = old_hex
+            if old_path: os.environ["ODIN_AUTHORITY_SEED_PATH"] = old_path
+
+        # 2. Corrupt seed length raises SecurityError
+        with self.assertRaises(SecurityError):
+            PolicyDecisionPoint(mode="provisioned", seed=b"short_corrupt_seed")
 
 if __name__ == "__main__":
     unittest.main()

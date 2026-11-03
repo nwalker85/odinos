@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 """
-Odin OS Phase B.3.1: Independent Policy Decision Point (PDP) & Authority Signer Service
-Enforces strict separation between untrusted Agent Request and privileged Authority Grant.
+Odin OS Phase B.3.2: Policy Decision Point (PDP) & Authority Signer Service
 
-Core Security Principles:
+Implements two explicit authority modes:
+- Mode A (Deterministic Research Fixture):
+  Uses public, deliberately insecure test seed b"odin_root_authority_seed_v2_key!".
+  Intended strictly for reproducible, deterministic test suites.
+  NO CLAIM of private key secrecy or production resistance.
+- Mode B (Independently Provisioned Authority):
+  Loads a cryptographically secure random 32-byte Ed25519 seed from an external
+  file (ODIN_AUTHORITY_SEED_PATH) or environment (ODIN_AUTHORITY_SEED_HEX).
+  Never logged or serialized. Fails closed if missing or invalid.
+
+Core Invariants:
 1. Agent Request != Authority Grant.
 2. The agent and transport bridge DO NOT possess private signing keys.
 3. Default-Deny Authorization: Only pre-authorized agents and bounded ranges are signed.
-4. Monotonic Sequence Allocation: State survives inside the authority boundary.
+4. Monotonic Sequence Allocation: State survives across evaluation turns.
 5. Structured Authorization Denial: Failed requests produce zero usable signed capability.
 """
 
@@ -17,13 +26,15 @@ import struct
 import json
 import hashlib
 import time
+import secrets
 from typing import Dict, Any, Tuple, Optional
 
-# Isolated Root Authority Seed (Confined exclusively to this authority process)
-_ROOT_SEED = b"odin_root_authority_seed_v2_key!"
 _DOMAIN_SEPARATOR = b"ODIN_DEED_V2\x00\x00\x00\x00"
 
-# Explicit Policy Specification
+# Mode A: Public Deterministic Research Fixture Seed (DELIBERATELY INSECURE)
+FIXTURE_ROOT_SEED = b"odin_root_authority_seed_v2_key!"
+
+# Declarative Policy Specification
 POLICY_REGISTRY = {
     "agent:gemma-4": {
         "description": "Local Gemma 4 Autonomous Agent Lease Policy",
@@ -45,13 +56,79 @@ POLICY_REGISTRY = {
     }
 }
 
+class SecurityError(Exception):
+    """Raised when cryptographic key material or authority boundaries are violated."""
+    pass
+
 class PolicyDecisionPoint:
-    def __init__(self, seed: bytes = _ROOT_SEED):
+    def __init__(
+        self,
+        mode: str = "fixture",
+        seed: Optional[bytes] = None,
+        sequence_state_file: Optional[str] = None
+    ):
+        """
+        Initializes the Policy Decision Point.
+        - mode="fixture": Uses public fixture seed for deterministic tests.
+        - mode="provisioned": Requires valid seed or loads from ODIN_AUTHORITY_SEED_PATH / ODIN_AUTHORITY_SEED_HEX.
+        """
         import nacl.signing
-        self._signing_key = nacl.signing.SigningKey(seed)
+
+        self.mode = mode.lower()
+        self.sequence_state_file = sequence_state_file
+        
+        if self.mode == "fixture":
+            signing_seed = seed if seed is not None else FIXTURE_ROOT_SEED
+        elif self.mode == "provisioned":
+            if seed is not None:
+                signing_seed = seed
+            elif "ODIN_AUTHORITY_SEED_HEX" in os.environ:
+                try:
+                    signing_seed = bytes.fromhex(os.environ["ODIN_AUTHORITY_SEED_HEX"].strip())
+                except Exception as e:
+                    raise SecurityError(f"Mode B failure: Invalid hex in ODIN_AUTHORITY_SEED_HEX: {e}")
+            elif "ODIN_AUTHORITY_SEED_PATH" in os.environ:
+                path = os.environ["ODIN_AUTHORITY_SEED_PATH"]
+                if not os.path.exists(path):
+                    raise SecurityError(f"Mode B failure: Provisioned key file not found: {path}")
+                try:
+                    with open(path, "rb") as f:
+                        signing_seed = f.read(32)
+                except Exception as e:
+                    raise SecurityError(f"Mode B failure: Unable to read provisioned key file: {e}")
+            else:
+                raise SecurityError(
+                    "Mode B requires independent key provisioning via ODIN_AUTHORITY_SEED_PATH or ODIN_AUTHORITY_SEED_HEX."
+                )
+        else:
+            raise ValueError(f"Unknown authority mode: {mode}")
+
+        if len(signing_seed) != 32:
+            raise SecurityError(f"Invalid seed length: expected 32 bytes, got {len(signing_seed)}")
+
+        self._signing_key = nacl.signing.SigningKey(signing_seed)
         self.public_key_bytes = bytes(self._signing_key.verify_key.encode())
-        self._current_sequence = 0
+        self._current_sequence = self._load_sequence_state()
         self._audit_log = []
+
+    def _load_sequence_state(self) -> int:
+        if self.sequence_state_file and os.path.exists(self.sequence_state_file):
+            try:
+                with open(self.sequence_state_file, "r") as f:
+                    data = json.load(f)
+                    return int(data.get("last_sequence", 0))
+            except Exception:
+                return 0
+        return 0
+
+    def _persist_sequence_state(self, seq: int):
+        if self.sequence_state_file:
+            try:
+                os.makedirs(os.path.dirname(os.path.abspath(self.sequence_state_file)), exist_ok=True)
+                with open(self.sequence_state_file, "w") as f:
+                    json.dump({"last_sequence": seq, "timestamp": time.time()}, f)
+            except Exception:
+                pass
 
     def evaluate_and_sign(
         self,
@@ -63,7 +140,7 @@ class PolicyDecisionPoint:
         lease_cycles: int = 1000000
     ) -> Tuple[bool, Optional[bytes], Dict[str, Any]]:
         """
-        Independent Policy Decision Point (PDP) evaluation.
+        Independent Policy Decision Point evaluation.
         Evaluates request against declarative policy before invoking cryptographic signing.
         """
         request_ts = time.time()
@@ -103,9 +180,10 @@ class PolicyDecisionPoint:
             receipt = self._emit_denial(agent_identity, "EXCESSIVE_LEASE_DURATION", anchor_id, target_offset, target_length, request_ts)
             return False, None, receipt
 
-        # Policy checks passed: Allocate monotonic sequence and construct canonical deed
+        # Allocate strictly monotonic sequence
         self._current_sequence += 1
         seq = self._current_sequence
+        self._persist_sequence_state(seq)
 
         deed_bytes = self._construct_and_sign_canonical_deed(
             sequence=seq,
@@ -118,6 +196,7 @@ class PolicyDecisionPoint:
 
         receipt = {
             "decision": "APPROVED",
+            "authority_mode": self.mode,
             "agent_identity": agent_identity,
             "anchor_id": anchor_id,
             "target_offset": target_offset,
@@ -132,6 +211,7 @@ class PolicyDecisionPoint:
     def _emit_denial(self, agent_id: str, reason: str, anchor: int, offset: int, length: int, ts: float) -> Dict[str, Any]:
         denial = {
             "decision": "DENIED",
+            "authority_mode": self.mode,
             "agent_identity": agent_id,
             "denial_reason": reason,
             "requested_anchor": anchor,
@@ -194,11 +274,11 @@ class PolicyDecisionPoint:
         # 0xDC..0x100: padding (36 bytes) -> automatically zeroes
         return bytes(buf)
 
-# Singleton Authority Instance for local service IPC
+# Singleton Authority Instance for local service IPC (Defaulting to Mode A Fixture)
 _authority_instance = None
 
-def get_authority_service() -> PolicyDecisionPoint:
+def get_authority_service(mode: str = "fixture") -> PolicyDecisionPoint:
     global _authority_instance
-    if _authority_instance is None:
-        _authority_instance = PolicyDecisionPoint()
+    if _authority_instance is None or _authority_instance.mode != mode:
+        _authority_instance = PolicyDecisionPoint(mode=mode)
     return _authority_instance
