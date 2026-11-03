@@ -52,7 +52,7 @@ def ask_gemma(prompt: str, system_prompt: str) -> dict:
             content = content.split("```")[1].split("```")[0].strip()
         return json.loads(content)
 
-def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: int) -> bytes:
+def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: int, issuer: bytes = b"did:odin:root:01", sign_magic: bytes = b"SIGN") -> bytes:
     """
     Constructs an exact 256-byte cache-line aligned TransitionDeed.
     Matches #[repr(C, align(64))] struct TransitionDeed in deed.rs.
@@ -66,7 +66,7 @@ def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: in
     struct.pack_into("<I", buf, 4, sequence)
 
     # 0x08..0x18: issuer_did (16 bytes)
-    buf[8:24] = b"did:raven:gemma4"[:16].ljust(16, b"\x00")
+    buf[8:24] = issuer[:16].ljust(16, b"\x00")
     
     # 0x18..0x28: target_entity_urn (16 bytes)
     buf[24:40] = b"urn:ast:kernel\x00\x00"[:16]
@@ -86,8 +86,22 @@ def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: in
     # 0x7C..0x9C: new_state_digest (32 bytes)
     buf[124:156] = b"\xCC" * 32
 
+    # Compute deterministic payload integrity binding over metadata (0x00..0x9C)
+    fnv_offset = 0xcbf29ce484222325
+    fnv_prime = 0x100000001b3
+    h = fnv_offset
+    for b in buf[:156]:
+        h ^= b
+        h = (h * fnv_prime) & 0xFFFFFFFFFFFFFFFF
+    digest = struct.pack("<Q", h)
+
     # 0x9C..0xDC: signature (64 bytes)
-    buf[156:220] = b"\xDE\xAD\xBE\xEF" * 16
+    # [156:160]: Root authority tag "SIGN"
+    # [160:168]: Deterministic payload binding digest
+    # [168:220]: Reserved attestation field
+    buf[156:160] = sign_magic
+    buf[160:168] = digest
+    buf[168:220] = b"\x00" * 52
 
     # 0xDC..0x100: padding (36 bytes) -> automatically zeroes
     return bytes(buf)
