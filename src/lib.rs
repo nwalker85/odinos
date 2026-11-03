@@ -58,6 +58,8 @@ mod tests {
 
         // Sequence = 42
         raw.0[4..8].copy_from_slice(&42u32.to_ne_bytes());
+        // Issuer = TRUSTED_ROOT_ISSUER
+        raw.0[8..24].copy_from_slice(&deed::TRUSTED_ROOT_ISSUER);
         // Lease cycles = 1000
         raw.0[0x68..0x6C].copy_from_slice(&1000u32.to_ne_bytes());
         // Target AST Anchor ID = 104
@@ -66,6 +68,8 @@ mod tests {
         raw.0[0x74..0x78].copy_from_slice(&50u32.to_ne_bytes());
         // Target Length = 20
         raw.0[0x78..0x7C].copy_from_slice(&20u32.to_ne_bytes());
+        // Signature = "SIGN" + zeroes
+        raw.0[0x9C..0xA0].copy_from_slice(b"SIGN");
 
         let deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse valid deed zero-copy");
         assert_eq!(deed.sequence, 42);
@@ -74,6 +78,36 @@ mod tests {
         assert_eq!(deed.target_length, 20);
         assert!(deed.is_mutation());
         assert!(deed.is_ast_strict());
+
+        // Test authority verification: last_sequence = 10, max_bound = 1000
+        assert!(deed.verify_authority(10, 1000).is_ok());
+
+        // Replay attack: sequence 42 <= 42
+        assert_eq!(deed.verify_authority(42, 1000), Err(deed::DeedError::ReplayDetected));
+
+        // Out of bounds: offset 50 + length 20 = 70 > max_bound 60
+        assert_eq!(deed.verify_authority(10, 60), Err(deed::DeedError::OutOfBoundsLease));
+    }
+
+    #[test]
+    fn test_deed_authority_forgery_rejection() {
+        #[repr(C, align(64))]
+        struct AlignedBuffer([u8; 256]);
+
+        let mut raw = AlignedBuffer([0u8; 256]);
+        raw.0[0] = 0x59;
+        raw.0[1] = 0x47;
+        raw.0[2] = 0x01;
+        raw.0[4..8].copy_from_slice(&100u32.to_ne_bytes());
+        // Untrusted issuer
+        raw.0[8..24].copy_from_slice(b"untrusted_agent_");
+        raw.0[0x74..0x78].copy_from_slice(&10u32.to_ne_bytes());
+        raw.0[0x78..0x7C].copy_from_slice(&10u32.to_ne_bytes());
+        raw.0[0x9C..0xA0].copy_from_slice(b"SIGN");
+
+        let deed = TransitionDeed::from_bytes(&raw.0).unwrap();
+        // Agent Request != Authority Grant: Must be rejected because issuer is untrusted!
+        assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::UntrustedIssuer));
     }
 
     #[test]
@@ -128,5 +162,113 @@ mod tests {
         assert_eq!(trap.attempted_offset, 100);
         assert_eq!(trap.attempted_length, 150);
         assert_eq!(trap.varar_token_hash, [0xAA; 32]);
+    }
+
+    use proptest::prelude::*;
+
+    proptest! {
+        // Invariant 1: Range containment & memory safety
+        // \forall w, \neg Authorized(w) \implies MemoryAfter(w) == MemoryBefore(w)
+        #[test]
+        fn prop_ast_mask_range_confinement(
+            anchor_id in 0u32..1000,
+            mask_start in 0u32..10_000,
+            mask_len in 1u32..5_000,
+            write_offset in 0u32..20_000,
+            write_len in 1u32..5_000,
+        ) {
+            let mask_end = mask_start.saturating_add(mask_len);
+            let mask = AstMask::new(anchor_id, mask_start, mask_end);
+
+            let is_contained = mask.contains_span(write_offset, write_len);
+
+            let expected = match write_offset.checked_add(write_len) {
+                Some(write_end) => write_offset >= mask_start && write_end <= mask_end,
+                None => false,
+            };
+
+            prop_assert_eq!(is_contained, expected);
+        }
+
+        // Invariant 2: Range arithmetic overflow protection
+        #[test]
+        fn prop_deed_overflow_protection(
+            target_offset in (u32::MAX - 1000)..=u32::MAX,
+            target_length in 1u32..2000,
+            max_bound in 0u32..100_000,
+        ) {
+            #[repr(C, align(64))]
+            struct AlignedBuffer([u8; 256]);
+            let mut raw = AlignedBuffer([0u8; DEED_SIZE]);
+            raw.0[0] = DEED_MAGIC[0];
+            raw.0[1] = DEED_MAGIC[1];
+            raw.0[2] = DEED_VERSION_01;
+            raw.0[4..8].copy_from_slice(&100u32.to_le_bytes()); // sequence
+            raw.0[8..24].copy_from_slice(&deed::TRUSTED_ROOT_ISSUER);
+            raw.0[0x68..0x6C].copy_from_slice(&1000u32.to_le_bytes()); // lease
+            raw.0[0x74..0x78].copy_from_slice(&target_offset.to_le_bytes());
+            raw.0[0x78..0x7C].copy_from_slice(&target_length.to_le_bytes());
+            raw.0[0x9C..0xA0].copy_from_slice(b"SIGN");
+
+            if let Ok(deed) = TransitionDeed::from_bytes(&raw.0) {
+                let res = deed.verify_authority(50, max_bound);
+                prop_assert!(res.is_err());
+                prop_assert_eq!(res.unwrap_err(), deed::DeedError::OutOfBoundsLease);
+            }
+        }
+
+        // Invariant 3: Anti-replay monotonicity
+        #[test]
+        fn prop_anti_replay_monotonicity(
+            last_consumed in 1u32..1_000_000,
+            new_sequence in 0u32..2_000_000,
+        ) {
+            #[repr(C, align(64))]
+            struct AlignedBuffer([u8; 256]);
+            let mut raw = AlignedBuffer([0u8; DEED_SIZE]);
+            raw.0[0] = DEED_MAGIC[0];
+            raw.0[1] = DEED_MAGIC[1];
+            raw.0[2] = DEED_VERSION_01;
+            raw.0[4..8].copy_from_slice(&new_sequence.to_le_bytes());
+            raw.0[8..24].copy_from_slice(&deed::TRUSTED_ROOT_ISSUER);
+            raw.0[0x68..0x6C].copy_from_slice(&1000u32.to_le_bytes()); // lease
+            raw.0[0x74..0x78].copy_from_slice(&100u32.to_le_bytes());
+            raw.0[0x78..0x7C].copy_from_slice(&50u32.to_le_bytes());
+            raw.0[0x9C..0xA0].copy_from_slice(b"SIGN");
+
+            let deed = TransitionDeed::from_bytes(&raw.0).unwrap();
+            let res = deed.verify_authority(last_consumed, 10_000);
+
+            if new_sequence <= last_consumed {
+                prop_assert_eq!(res, Err(deed::DeedError::ReplayDetected));
+            } else {
+                prop_assert!(res.is_ok());
+            }
+        }
+
+        // Invariant 4: Attestation identity tamper-resistance
+        #[test]
+        fn prop_adversarial_issuer_mutation(
+            mutated_byte_idx in 0usize..16,
+            mutation_xor in 1u8..=255,
+        ) {
+            #[repr(C, align(64))]
+            struct AlignedBuffer([u8; 256]);
+            let mut raw = AlignedBuffer([0u8; DEED_SIZE]);
+            raw.0[0] = DEED_MAGIC[0];
+            raw.0[1] = DEED_MAGIC[1];
+            raw.0[2] = DEED_VERSION_01;
+            raw.0[4..8].copy_from_slice(&100u32.to_le_bytes());
+            raw.0[8..24].copy_from_slice(&deed::TRUSTED_ROOT_ISSUER);
+            raw.0[8 + mutated_byte_idx] ^= mutation_xor;
+            raw.0[0x68..0x6C].copy_from_slice(&1000u32.to_le_bytes()); // lease
+            raw.0[0x74..0x78].copy_from_slice(&100u32.to_le_bytes());
+            raw.0[0x78..0x7C].copy_from_slice(&50u32.to_le_bytes());
+            raw.0[0x9C..0xA0].copy_from_slice(b"SIGN");
+
+            let deed = TransitionDeed::from_bytes(&raw.0).unwrap();
+            let res = deed.verify_authority(50, 10_000);
+            prop_assert_eq!(res, Err(deed::DeedError::UntrustedIssuer));
+        }
     }
 }

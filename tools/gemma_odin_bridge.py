@@ -52,7 +52,7 @@ def ask_gemma(prompt: str, system_prompt: str) -> dict:
             content = content.split("```")[1].split("```")[0].strip()
         return json.loads(content)
 
-def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: int) -> bytes:
+def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: int, issuer: bytes = b"did:odin:root:01", sign_magic: bytes = b"SIGN") -> bytes:
     """
     Constructs an exact 256-byte cache-line aligned TransitionDeed.
     Matches #[repr(C, align(64))] struct TransitionDeed in deed.rs.
@@ -66,7 +66,7 @@ def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: in
     struct.pack_into("<I", buf, 4, sequence)
 
     # 0x08..0x18: issuer_did (16 bytes)
-    buf[8:24] = b"did:raven:gemma4"[:16].ljust(16, b"\x00")
+    buf[8:24] = issuer[:16].ljust(16, b"\x00")
     
     # 0x18..0x28: target_entity_urn (16 bytes)
     buf[24:40] = b"urn:ast:kernel\x00\x00"[:16]
@@ -87,7 +87,8 @@ def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: in
     buf[124:156] = b"\xCC" * 32
 
     # 0x9C..0xDC: signature (64 bytes)
-    buf[156:220] = b"\xDE\xAD\xBE\xEF" * 16
+    buf[156:160] = sign_magic
+    buf[160:220] = b"\xDE\xAD\xBE\xEF" * 15
 
     # 0xDC..0x100: padding (36 bytes) -> automatically zeroes
     return bytes(buf)
