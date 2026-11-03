@@ -10,6 +10,12 @@
 
 use core::panic::PanicInfo;
 
+mod deed;
+mod trap;
+mod interlock;
+
+use deed::{TransitionDeed, DEED_SIZE};
+
 core::arch::global_asm!(
     ".section .text.init",
     ".global _start",
@@ -29,6 +35,7 @@ core::arch::global_asm!(
     "  tail kmain",
     "",
     ".section .text",
+    ".balign 4",
     ".global trap_entry",
     "trap_entry:",
     // Save minimal scratch registers
@@ -67,12 +74,35 @@ const MASK_START: usize = 0x8002_0000;
 const MASK_END: usize = 0x8002_1000; // 4KB authorized AST buffer
 const UNAUTHORIZED_ADDR: usize = 0x8003_0000; // Outside PMP mask buffer
 
+const DEED_DMA_ADDR: usize = 0x8004_0000;
+
+static mut DYNAMIC_MODE: bool = false;
+static mut DYNAMIC_TARGET_ADDR: usize = UNAUTHORIZED_ADDR;
+static mut DYNAMIC_TARGET_VAL: u8 = 0xFF;
+
 // Print primitives over UART (16550A)
 fn uart_putc(c: u8) {
     unsafe {
         // Wait for transmitter empty
         while (UART0.add(5).read_volatile() & 0x20) == 0 {}
         UART0.write_volatile(c);
+    }
+}
+
+fn uart_try_getc() -> Option<u8> {
+    unsafe {
+        if (UART0.add(5).read_volatile() & 0x01) != 0 {
+            Some(UART0.read_volatile())
+        } else {
+            None
+        }
+    }
+}
+
+fn uart_getc() -> u8 {
+    unsafe {
+        while (UART0.add(5).read_volatile() & 0x01) == 0 {}
+        UART0.read_volatile()
     }
 }
 
@@ -119,48 +149,114 @@ pub extern "C" fn kmain() -> ! {
         (UNAUTHORIZED_ADDR as *mut u8).write_volatile(0x00);
     }
 
-    // 3. Program RISC-V PMP Registers (Physical Memory Protection)
-    //
-    // Entry 0..1: UART MMIO [0x1000_0000 .. 0x1000_1000] -> RW- (TOR mode)
-    // Entry 2..3: Code & Stack [0x8000_0000 .. 0x8001_0000] -> RWX (TOR mode)
-    // Entry 3..4: Authorized AST Mask [0x8001_0000 .. 0x8001_1000] -> RW- (TOR mode)
-    // Everything else: No entries match -> User Mode write access gated (WE = 0)!
-    let pmpaddr0_val = UART_BASE >> 2;
-    let pmpaddr1_val = UART_END >> 2;
-    let pmpaddr2_val = CODE_BASE >> 2;
-    let pmpaddr3_val = CODE_END >> 2;
-    let pmpaddr4_val = MASK_END >> 2;
+    // 3. Check for dynamic TransitionDeed in DRAM (loaded via QEMU device loader)
+    let has_dma_deed = unsafe {
+        let magic_ptr = DEED_DMA_ADDR as *const [u8; 2];
+        *magic_ptr == deed::DEED_MAGIC
+    };
 
-    // pmpcfg0:
-    // Entry 0: OFF (0x00)
-    // Entry 1: TOR (0x08) | W (0x02) | R (0x01) = 0x0B
-    // Entry 2: OFF (0x00)
-    // Entry 3: TOR (0x08) | X (0x04) | W (0x02) | R (0x01) = 0x0F
-    // Entry 4: TOR (0x08) | W (0x02) | R (0x01) = 0x0B
-    let pmpcfg0_val: u64 = (0x0B_u64 << 32) | (0x0F_u64 << 24) | (0x0B_u64 << 8);
+    if has_dma_deed {
+        uart_print("[AGENT BRIDGE] TransitionDeed detected in DRAM via Hardware Loader!\n");
+        let deed_bytes = unsafe { &*(DEED_DMA_ADDR as *const [u8; DEED_SIZE]) };
+        let target_addr = unsafe { *((DEED_DMA_ADDR + DEED_SIZE) as *const u64) } as usize;
+        let target_val = unsafe { *((DEED_DMA_ADDR + DEED_SIZE + 8) as *const u8) };
 
-    unsafe {
-        core::arch::asm!(
-            "csrw pmpaddr0, {0}",
-            "csrw pmpaddr1, {1}",
-            "csrw pmpaddr2, {2}",
-            "csrw pmpaddr3, {3}",
-            "csrw pmpaddr4, {4}",
-            "csrw pmpcfg0, {5}",
-            in(reg) pmpaddr0_val,
-            in(reg) pmpaddr1_val,
-            in(reg) pmpaddr2_val,
-            in(reg) pmpaddr3_val,
-            in(reg) pmpaddr4_val,
-            in(reg) pmpcfg0_val,
-        );
+        unsafe {
+            DYNAMIC_MODE = true;
+            DYNAMIC_TARGET_ADDR = target_addr;
+            DYNAMIC_TARGET_VAL = target_val;
+            (target_addr as *mut u8).write_volatile(0x00);
+        }
+
+        match TransitionDeed::from_bytes(deed_bytes) {
+            Ok(deed) => {
+                uart_print("[DEED] Verified TransitionDeed: anchor_id = ");
+                uart_print_hex(deed.target_ast_anchor_id as u64);
+                uart_print(", offset = ");
+                uart_print_hex(deed.target_offset as u64);
+                uart_print(", length = ");
+                uart_print_hex(deed.target_length as u64);
+                uart_print("\n");
+
+                let mask_start = MASK_START + deed.target_offset as usize;
+                let mask_end = mask_start + deed.target_length as usize;
+
+                let pmpaddr0_val = UART_BASE >> 2;
+                let pmpaddr1_val = UART_END >> 2;
+                let pmpaddr2_val = CODE_BASE >> 2;
+                let pmpaddr3_val = CODE_END >> 2;
+                let pmpaddr4_val = mask_start >> 2;
+                let pmpaddr5_val = mask_end >> 2;
+
+                let pmpcfg0_val: u64 = (0x0B_u64 << 40) | (0x00_u64 << 32) | (0x0F_u64 << 24) | (0x0B_u64 << 8);
+
+                unsafe {
+                    core::arch::asm!(
+                        "csrw pmpaddr0, {0}",
+                        "csrw pmpaddr1, {1}",
+                        "csrw pmpaddr2, {2}",
+                        "csrw pmpaddr3, {3}",
+                        "csrw pmpaddr4, {4}",
+                        "csrw pmpaddr5, {5}",
+                        "csrw pmpcfg0, {6}",
+                        in(reg) pmpaddr0_val,
+                        in(reg) pmpaddr1_val,
+                        in(reg) pmpaddr2_val,
+                        in(reg) pmpaddr3_val,
+                        in(reg) pmpaddr4_val,
+                        in(reg) pmpaddr5_val,
+                        in(reg) pmpcfg0_val,
+                    );
+                }
+
+                uart_print("[PMP] Dynamic hardware registers programmed in silicon:\n");
+                uart_print("  ├── Region 0 [0x10000000 .. 0x10001000]: RW- (UART0 MMIO)\n");
+                uart_print("  ├── Region 1 [0x80000000 .. 0x80020000]: RWX (Kernel / Task Text & Stack)\n");
+                uart_print("  ├── Region 2 [");
+                uart_print_hex(mask_start as u64);
+                uart_print(" .. ");
+                uart_print_hex(mask_end as u64);
+                uart_print("]: RW- (Authorized TransitionDeed Slice)\n");
+                uart_print("  └── Perimeter [All other addresses]:     --- (WE = 0 Gated)\n\n");
+            }
+            Err(_) => {
+                uart_print("[DEED] ✗ FATAL: TransitionDeed cryptographic check failed!\n");
+                exit_qemu(false);
+            }
+        }
+    } else {
+        // Static Autonomous Phase B Verification Mode
+        let pmpaddr0_val = UART_BASE >> 2;
+        let pmpaddr1_val = UART_END >> 2;
+        let pmpaddr2_val = CODE_BASE >> 2;
+        let pmpaddr3_val = CODE_END >> 2;
+        let pmpaddr4_val = MASK_END >> 2;
+
+        let pmpcfg0_val: u64 = (0x0B_u64 << 32) | (0x0F_u64 << 24) | (0x0B_u64 << 8);
+
+        unsafe {
+            core::arch::asm!(
+                "csrw pmpaddr0, {0}",
+                "csrw pmpaddr1, {1}",
+                "csrw pmpaddr2, {2}",
+                "csrw pmpaddr3, {3}",
+                "csrw pmpaddr4, {4}",
+                "csrw pmpcfg0, {5}",
+                in(reg) pmpaddr0_val,
+                in(reg) pmpaddr1_val,
+                in(reg) pmpaddr2_val,
+                in(reg) pmpaddr3_val,
+                in(reg) pmpaddr4_val,
+                in(reg) pmpcfg0_val,
+            );
+        }
+
+        uart_print("[PMP] Hardware memory registers programmed in silicon:\n");
+        uart_print("  ├── Region 0 [0x10000000 .. 0x10001000]: RW- (UART0 MMIO)\n");
+        uart_print("  ├── Region 1 [0x80000000 .. 0x80020000]: RWX (Kernel / Task Text & Stack)\n");
+        uart_print("  ├── Region 2 [0x80020000 .. 0x80021000]: RW- (Authorized AST Mask Buffer)\n");
+        uart_print("  └── Perimeter [All other addresses]:     --- (WE = 0 Gated)\n\n");
     }
-
-    uart_print("[PMP] Hardware memory registers programmed in silicon:\n");
-    uart_print("  ├── Region 0 [0x10000000 .. 0x10001000]: RW- (UART0 MMIO)\n");
-    uart_print("  ├── Region 1 [0x80000000 .. 0x80020000]: RWX (Kernel / Task Text & Stack)\n");
-    uart_print("  ├── Region 2 [0x80020000 .. 0x80021000]: RW- (Authorized AST Mask Buffer)\n");
-    uart_print("  └── Perimeter [All other addresses]:     --- (WE = 0 Gated)\n\n");
 
     // 4. Drop privilege from M-Mode to User Mode (U-Mode)
     uart_print("[TRANSITION] Dropping CPU privilege from M-Mode to User Mode (U-Mode)...\n");
@@ -184,6 +280,33 @@ pub extern "C" fn kmain() -> ! {
 
 /// Unprivileged User-Mode Agent Task
 extern "C" fn user_mode_task() -> ! {
+    if unsafe { DYNAMIC_MODE } {
+        uart_print("[U-MODE] Dynamic Agent Task running in unprivileged User Mode.\n");
+        let target_addr = unsafe { DYNAMIC_TARGET_ADDR };
+        let target_val = unsafe { DYNAMIC_TARGET_VAL };
+
+        uart_print("  ├── Target Memory Address:   ");
+        uart_print_hex(target_addr as u64);
+        uart_print("\n  ├── Target Mutation Value:   ");
+        uart_print_hex(target_val as u64);
+        uart_print("\n  └── Issuing store instruction: sb ...\n");
+
+        unsafe {
+            (target_addr as *mut u8).write_volatile(target_val);
+            let readback = (target_addr as *const u8).read_volatile();
+            if readback == target_val {
+                uart_print("  └── ✓ PASS: Mutation authorized by TransitionDeed and committed in silicon!\n\n");
+                uart_print("══════════════════════════════════════════════════════════════════════════\n");
+                uart_print("🎉 HARDWARE DEED CONTRACT FULFILLED: IN-BOUNDS AGENT MUTATION COMMITTED\n");
+                uart_print("══════════════════════════════════════════════════════════════════════════\n\n");
+                core::arch::asm!("ecall");
+            } else {
+                uart_print("  └── ✗ FAIL: Unexpected readback.\n");
+                core::arch::asm!("ecall");
+            }
+        }
+    }
+
     uart_print("[U-MODE] Task running in unprivileged User Mode.\n");
 
     // TEST 1: Authorized write inside AST mask buffer (0x80020050)
@@ -214,8 +337,6 @@ extern "C" fn user_mode_task() -> ! {
     exit_qemu(false);
 }
 
-
-
 #[no_mangle]
 extern "C" fn handle_trap() {
     let mcause: u64;
@@ -226,6 +347,11 @@ extern "C" fn handle_trap() {
         core::arch::asm!("csrr {0}, mcause", out(reg) mcause);
         core::arch::asm!("csrr {0}, mepc", out(reg) mepc);
         core::arch::asm!("csrr {0}, mtval", out(reg) mtval);
+    }
+
+    // Check if mcause is 8 (Environment Call from U-mode)
+    if mcause == 8 {
+        exit_qemu(true);
     }
 
     // Check if mcause is 7 (Store/AMO Access Fault)
@@ -243,9 +369,18 @@ extern "C" fn handle_trap() {
         uart_print("\n");
         uart_print("  └── physical_wordline_gate:  WE = 0 (BUS TRANSACTION ABORTED)\n\n");
 
+        let target_addr = if unsafe { DYNAMIC_MODE } {
+            unsafe { DYNAMIC_TARGET_ADDR }
+        } else {
+            UNAUTHORIZED_ADDR
+        };
+
         // PHYSICAL VERIFICATION: Check byte at attempted address
-        let val_at_target = unsafe { (UNAUTHORIZED_ADDR as *const u8).read_volatile() };
+        let val_at_target = unsafe { (target_addr as *const u8).read_volatile() };
         uart_print("[EVIDENCE INSPECTION]\n");
+        uart_print("  ├── Target Probed Address:   ");
+        uart_print_hex(target_addr as u64);
+        uart_print("\n");
         uart_print("  ├── Expected Value:          0x00 (Original State)\n");
         uart_print("  ├── Readback Value:          ");
         uart_print_hex(val_at_target as u64);
