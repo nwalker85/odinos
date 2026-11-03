@@ -86,9 +86,22 @@ def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: in
     # 0x7C..0x9C: new_state_digest (32 bytes)
     buf[124:156] = b"\xCC" * 32
 
+    # Compute deterministic payload integrity binding over metadata (0x00..0x9C)
+    fnv_offset = 0xcbf29ce484222325
+    fnv_prime = 0x100000001b3
+    h = fnv_offset
+    for b in buf[:156]:
+        h ^= b
+        h = (h * fnv_prime) & 0xFFFFFFFFFFFFFFFF
+    digest = struct.pack("<Q", h)
+
     # 0x9C..0xDC: signature (64 bytes)
+    # [156:160]: Root authority tag "SIGN"
+    # [160:168]: Deterministic payload binding digest
+    # [168:220]: Reserved attestation field
     buf[156:160] = sign_magic
-    buf[160:220] = b"\xDE\xAD\xBE\xEF" * 15
+    buf[160:168] = digest
+    buf[168:220] = b"\x00" * 52
 
     # 0xDC..0x100: padding (36 bytes) -> automatically zeroes
     return bytes(buf)

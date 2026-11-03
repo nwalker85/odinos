@@ -68,8 +68,13 @@ mod tests {
         raw.0[0x74..0x78].copy_from_slice(&50u32.to_ne_bytes());
         // Target Length = 20
         raw.0[0x78..0x7C].copy_from_slice(&20u32.to_ne_bytes());
-        // Signature = "SIGN" + zeroes
+        // Attestation header = "SIGN"
         raw.0[0x9C..0xA0].copy_from_slice(b"SIGN");
+
+        // First parse to compute digest
+        let temp_deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse valid deed zero-copy");
+        let digest = temp_deed.compute_digest();
+        raw.0[0xA0..0xA8].copy_from_slice(&digest);
 
         let deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse valid deed zero-copy");
         assert_eq!(deed.sequence, 42);
@@ -108,6 +113,54 @@ mod tests {
         let deed = TransitionDeed::from_bytes(&raw.0).unwrap();
         // Agent Request != Authority Grant: Must be rejected because issuer is untrusted!
         assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::UntrustedIssuer));
+    }
+
+    #[test]
+    fn test_deed_payload_tampering_rejection() {
+        #[repr(C, align(64))]
+        struct AlignedBuffer([u8; 256]);
+
+        let mut raw = AlignedBuffer([0u8; 256]);
+        raw.0[0] = 0x59;
+        raw.0[1] = 0x47;
+        raw.0[2] = 0x01;
+        raw.0[4..8].copy_from_slice(&100u32.to_ne_bytes());
+        raw.0[8..24].copy_from_slice(&deed::TRUSTED_ROOT_ISSUER);
+        raw.0[0x68..0x6C].copy_from_slice(&1000u32.to_ne_bytes());
+        raw.0[0x74..0x78].copy_from_slice(&10u32.to_ne_bytes());
+        raw.0[0x78..0x7C].copy_from_slice(&10u32.to_ne_bytes());
+        raw.0[0x9C..0xA0].copy_from_slice(b"SIGN");
+
+        let temp = TransitionDeed::from_bytes(&raw.0).unwrap();
+        let digest = temp.compute_digest();
+        raw.0[0xA0..0xA8].copy_from_slice(&digest);
+
+        // Adversary tampers with offset (changing from 10 to 80) without re-attesting
+        raw.0[0x74..0x78].copy_from_slice(&80u32.to_ne_bytes());
+
+        let deed = TransitionDeed::from_bytes(&raw.0).unwrap();
+        assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::PayloadTampered));
+    }
+
+    #[test]
+    fn test_deed_missing_attestation_marker_rejection() {
+        #[repr(C, align(64))]
+        struct AlignedBuffer([u8; 256]);
+
+        let mut raw = AlignedBuffer([0u8; 256]);
+        raw.0[0] = 0x59;
+        raw.0[1] = 0x47;
+        raw.0[2] = 0x01;
+        raw.0[4..8].copy_from_slice(&100u32.to_ne_bytes());
+        raw.0[8..24].copy_from_slice(&deed::TRUSTED_ROOT_ISSUER);
+        raw.0[0x68..0x6C].copy_from_slice(&1000u32.to_ne_bytes());
+        raw.0[0x74..0x78].copy_from_slice(&10u32.to_ne_bytes());
+        raw.0[0x78..0x7C].copy_from_slice(&10u32.to_ne_bytes());
+        // Forged or missing marker: "FAKE"
+        raw.0[0x9C..0xA0].copy_from_slice(b"FAKE");
+
+        let deed = TransitionDeed::from_bytes(&raw.0).unwrap();
+        assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::InvalidSignature));
     }
 
     #[test]
@@ -236,6 +289,10 @@ mod tests {
             raw.0[0x78..0x7C].copy_from_slice(&50u32.to_le_bytes());
             raw.0[0x9C..0xA0].copy_from_slice(b"SIGN");
 
+            let temp = TransitionDeed::from_bytes(&raw.0).unwrap();
+            let digest = temp.compute_digest();
+            raw.0[0xA0..0xA8].copy_from_slice(&digest);
+
             let deed = TransitionDeed::from_bytes(&raw.0).unwrap();
             let res = deed.verify_authority(last_consumed, 10_000);
 
@@ -269,6 +326,38 @@ mod tests {
             let deed = TransitionDeed::from_bytes(&raw.0).unwrap();
             let res = deed.verify_authority(50, 10_000);
             prop_assert_eq!(res, Err(deed::DeedError::UntrustedIssuer));
+        }
+
+        // Invariant 5: Payload integrity binding (any alteration of bytes 0..156 triggers PayloadTampered)
+        #[test]
+        fn prop_payload_tamper_detection(
+            tamper_byte_idx in 0usize..156,
+            tamper_xor in 1u8..=255,
+        ) {
+            #[repr(C, align(64))]
+            struct AlignedBuffer([u8; 256]);
+            let mut raw = AlignedBuffer([0u8; DEED_SIZE]);
+            raw.0[0] = DEED_MAGIC[0];
+            raw.0[1] = DEED_MAGIC[1];
+            raw.0[2] = DEED_VERSION_01;
+            raw.0[4..8].copy_from_slice(&100u32.to_le_bytes());
+            raw.0[8..24].copy_from_slice(&deed::TRUSTED_ROOT_ISSUER);
+            raw.0[0x68..0x6C].copy_from_slice(&1000u32.to_le_bytes()); // lease
+            raw.0[0x74..0x78].copy_from_slice(&100u32.to_le_bytes());
+            raw.0[0x78..0x7C].copy_from_slice(&50u32.to_le_bytes());
+            raw.0[0x9C..0xA0].copy_from_slice(b"SIGN");
+
+            let temp = TransitionDeed::from_bytes(&raw.0).unwrap();
+            let digest = temp.compute_digest();
+            raw.0[0xA0..0xA8].copy_from_slice(&digest);
+
+            // Tamper with a payload byte
+            raw.0[tamper_byte_idx] ^= tamper_xor;
+
+            if let Ok(deed) = TransitionDeed::from_bytes(&raw.0) {
+                let res = deed.verify_authority(50, 10_000);
+                prop_assert!(res.is_err(), "Tampered payload must never verify successfully");
+            }
         }
     }
 }

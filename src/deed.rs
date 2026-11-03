@@ -35,6 +35,7 @@ pub enum DeedError {
     UntrustedIssuer,
     ReplayDetected,
     InvalidSignature,
+    PayloadTampered,
     OutOfBoundsLease,
 }
 
@@ -144,29 +145,46 @@ impl TransitionDeed {
             return Err(DeedError::OutOfBoundsLease);
         }
 
-        // 4. Attestation signature verification (enforcing cryptographic deed proof)
-        if !self.verify_signature_attestation() {
+        // 4. Attestation marker and payload integrity binding check
+        // NOTE: In Phase B.1 this enforces structural attestation and deterministic 64-bit
+        // payload integrity binding over metadata bytes 0x00..0x9C. Full cryptographic Ed25519
+        // verification against a pinned public key is designated for Phase C hardware acceleration.
+        if !self.has_valid_attestation_marker() {
             return Err(DeedError::InvalidSignature);
+        }
+        if !self.has_valid_payload_binding() {
+            return Err(DeedError::PayloadTampered);
         }
 
         Ok(())
     }
 
+    /// Computes a deterministic 64-bit integrity digest over the 156-byte deed payload (0x00..0x9C).
+    pub fn compute_digest(&self) -> [u8; 8] {
+        const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
+        const FNV_PRIME: u64 = 0x100000001b3;
+        let mut hash = FNV_OFFSET_BASIS;
+        let bytes = unsafe { core::slice::from_raw_parts(self as *const Self as *const u8, 156) };
+        for &byte in bytes {
+            hash ^= byte as u64;
+            hash = hash.wrapping_mul(FNV_PRIME);
+        }
+        hash.to_le_bytes()
+    }
+
+    /// Validates the structural root attestation tag ("SIGN" [0x53, 0x49, 0x47, 0x4E]).
+    pub fn has_valid_attestation_marker(&self) -> bool {
+        self.signature[0..4] == [0x53, 0x49, 0x47, 0x4E]
+    }
+
+    /// Validates that the signature field cryptographically/structurally binds the deed payload.
+    pub fn has_valid_payload_binding(&self) -> bool {
+        let expected_digest = self.compute_digest();
+        self.signature[4..12] == expected_digest
+    }
+
     /// Verifies deterministic signature attestation over the deed.
     pub fn verify_signature_attestation(&self) -> bool {
-        // Signature cannot be null
-        let mut non_zero = false;
-        for &b in &self.signature {
-            if b != 0 {
-                non_zero = true;
-                break;
-            }
-        }
-        if !non_zero {
-            return false;
-        }
-
-        // Attested root authority tag: "SIGN" [0x53, 0x49, 0x47, 0x4E]
-        self.signature[0..4] == [0x53, 0x49, 0x47, 0x4E]
+        self.has_valid_attestation_marker() && self.has_valid_payload_binding()
     }
 }
