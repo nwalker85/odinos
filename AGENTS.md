@@ -13,7 +13,12 @@ The bare-metal `#![no_std]` capability microkernel and wordline-gated silicon ru
 3. **Wordline Gating (WE = 0)**: Any proposed memory mutation spanning outside an active `AstMask` must physically fail closed and mint a `CausalTrapFrame` for Interrupt Vector `0x8F` (`TRAP_AST_BOUNDARY`).
 4. **Git Custody**: Obey Ravenhelm `.bare/` worktree rules and conventional commits. Never push directly to main.
 
-## 3. Verification Commands
+## 3. Deploy Model
+- **Classification**: Research bare-metal `#![no_std]` RISC-V microkernel and empirical simulation testbed.
+- **Production Surface**: None (Target is QEMU `riscv64gc-unknown-none-elf` and bare-metal StarFive JH7110 SoC testbeds).
+- **Deploy Rail**: None. Builds are executed locally or in CI; deliverables are published as archival packages and formal whitepapers to Zenodo.
+
+## 4. Verification Commands
 - Host Unit Tests: `cargo test --lib`
 - Bare-Metal RISC-V Build: `cargo build --target riscv64gc-unknown-none-elf`
 - Bare-Metal Release Build: `cargo build --release --target riscv64gc-unknown-none-elf`
