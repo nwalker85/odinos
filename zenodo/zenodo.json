@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "title": "Odin OS: Hardware-Enforced Physical Memory Protection and Wordline Gating for Sovereign AI Agents",
+    "upload_type": "publication",
+    "publication_type": "technicalnote",
+    "description": "<p><strong>Odin OS</strong> is a bare-metal, zero-allocation (<code>#![no_std]</code>) 64-bit RISC-V microkernel that anchors autonomous AI agent capability boundaries directly into physical silicon memory comparators. Operating on the central axiom that <em>state that cannot prove its right to exist cannot be committed</em>, Odin OS enforces capability containment via cache-line aligned 256-byte binary tokens termed <code>TransitionDeeds</code>.</p><p>By leveraging RISC-V Physical Memory Protection (PMP) registers in Top-of-Range (TOR) mode during privileged Machine Mode (M-Mode) execution, the CPU hardware comparators dynamically lock down all out-of-bounds physical addresses by forcing Write Enable to zero (<code>WE = 0</code>). This publication includes empirical proof executing against local neural inference on <code>google/gemma-4-e4b</code>: authorized mutations commit in a single clock cycle, while adversarial prompt injection jailbreaks trigger hardware Store Access Faults (<code>mcause = 0x07</code>), leaving zero bits flipped in physical memory.</p>",
+    "creators": [
+      {
+        "name": "Walker, Nathan",
+        "affiliation": "Ravenhelm Platform & Runestack",
+        "email": "nwalker85@gmail.com"
+      }
+    ],
+    "access_right": "open",
+    "license": "MIT",
+    "keywords": [
+      "RISC-V",
+      "Operating Systems",
+      "Physical Memory Protection",
+      "Hardware Wordline Gating",
+      "AI Safety",
+      "Autonomous Agents",
+      "Microkernel",
+      "Gemma 4",
+      "Prompt Injection Containment"
+    ],
+    "related_identifiers": [
+      {
+        "identifier": "https://github.com/nwalker85/odinos",
+        "relation": "isSupplementTo",
+        "scheme": "url"
+      }
+    ]
+  }
+}
