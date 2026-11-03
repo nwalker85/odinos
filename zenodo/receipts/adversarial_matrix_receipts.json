@@ -98,14 +98,29 @@
     "hardware_fault": true,
     "mcause": "0x0000000000000007",
     "probed_address": "0x0000000080010000",
-    "readback_value": "0x0000000000000041",
-    "expected_value": "0x0000000000000041",
+    "readback_value": "0x0000000000000009",
+    "expected_value": "0x0000000000000009",
     "mutation_committed": false,
     "memory_unmodified": true,
     "status": "PASS"
   },
   {
     "test_id": 8,
+    "test_name": "USER_STACK_EXECUTE_WX",
+    "target_address": "0x0000000080018100",
+    "access_width": 0,
+    "expected_fault": true,
+    "hardware_fault": true,
+    "mcause": "0x0000000000000001",
+    "probed_address": "0x0000000000000000",
+    "readback_value": "0x0000000000000000",
+    "expected_value": "0x0000000000000000",
+    "mutation_committed": false,
+    "memory_unmodified": true,
+    "status": "PASS"
+  },
+  {
+    "test_id": 9,
     "test_name": "UNMAPPED_PERIMETER_WRITE",
     "target_address": "0x0000000080030000",
     "access_width": 1,
@@ -120,7 +135,7 @@
     "status": "PASS"
   },
   {
-    "test_id": 9,
+    "test_id": 10,
     "test_name": "MULTIBYTE_OVERLAP_CROSSING",
     "target_address": "0x000000008002005e",
     "access_width": 4,
@@ -135,7 +150,7 @@
     "status": "PASS"
   },
   {
-    "test_id": 10,
+    "test_id": 11,
     "test_name": "FORGED_DEED_UNTRUSTED_ISSUER",
     "target_address": "0x0000000000000000",
     "access_width": 0,
@@ -150,7 +165,7 @@
     "status": "PASS"
   },
   {
-    "test_id": 11,
+    "test_id": 12,
     "test_name": "REPLAYED_DEED_SEQUENCE",
     "target_address": "0x0000000000000000",
     "access_width": 0,
@@ -165,7 +180,37 @@
     "status": "PASS"
   },
   {
-    "test_id": 12,
+    "test_id": 13,
+    "test_name": "FORGED_DEED_ED25519_INVALID_SIGNATURE",
+    "target_address": "0x0000000000000000",
+    "access_width": 0,
+    "expected_fault": false,
+    "hardware_fault": false,
+    "mcause": "0x0000000000000000",
+    "probed_address": "0x0000000000000000",
+    "readback_value": "0x0000000000000004",
+    "expected_value": "0x0000000000000004",
+    "mutation_committed": false,
+    "memory_unmodified": true,
+    "status": "PASS"
+  },
+  {
+    "test_id": 14,
+    "test_name": "DEED_TAMPERED_METADATA_ED25519",
+    "target_address": "0x0000000000000000",
+    "access_width": 0,
+    "expected_fault": false,
+    "hardware_fault": false,
+    "mcause": "0x0000000000000000",
+    "probed_address": "0x0000000000000000",
+    "readback_value": "0x0000000000000004",
+    "expected_value": "0x0000000000000004",
+    "mutation_committed": false,
+    "memory_unmodified": true,
+    "status": "PASS"
+  },
+  {
+    "test_id": 15,
     "test_name": "U_MODE_CSR_TAMPER_PMPCFG0",
     "target_address": "0x0000000000000000",
     "access_width": 0,
@@ -180,22 +225,22 @@
     "status": "PASS"
   },
   {
-    "test_id": 13,
-    "test_name": "DEED_PAYLOAD_TAMPERED",
-    "target_address": "0x0000000000000000",
-    "access_width": 0,
-    "expected_fault": false,
-    "hardware_fault": false,
-    "mcause": "0x0000000000000000",
-    "probed_address": "0x0000000000000000",
-    "readback_value": "0x0000000000000003",
-    "expected_value": "0x0000000000000003",
+    "test_id": 16,
+    "test_name": "EXPIRED_LEASE_TEMPORAL_REVOCATION",
+    "target_address": "0x0000000080020040",
+    "access_width": 1,
+    "expected_fault": true,
+    "hardware_fault": true,
+    "mcause": "0x0000000000000007",
+    "probed_address": "0x0000000080020040",
+    "readback_value": "0x0000000000000041",
+    "expected_value": "0x0000000000000041",
     "mutation_committed": false,
     "memory_unmodified": true,
     "status": "PASS"
   },
   {
-    "test_id": 14,
+    "test_id": 17,
     "test_name": "U_MODE_UART_MMIO_WRITE",
     "target_address": "0x0000000010000000",
     "access_width": 1,

@@ -3,6 +3,7 @@
 //! State that cannot prove its right to exist cannot be committed to memory or disk.
 
 #![cfg_attr(not(test), no_std)]
+#![allow(dead_code)]
 
 pub mod deed;
 pub mod trap;
@@ -42,6 +43,163 @@ mod tests {
         // Assert 64-byte aligned trap frame
         assert_eq!(align_of::<CausalTrapFrame>(), 64);
         assert!(size_of::<CausalTrapFrame>() <= 128);
+    }
+
+    #[test]
+    fn test_ed25519_vector_cross_compat() {
+        let pk_bytes: [u8; 32] = [
+            0xFD, 0xC8, 0x86, 0xB0, 0xA3, 0xAE, 0xD3, 0x9A, 0x07, 0xF6, 0x5F, 0x21, 0x43, 0x88, 0x64, 0x48,
+            0x02, 0xA5, 0x5E, 0x59, 0xDE, 0xC4, 0xB5, 0xED, 0x34, 0x61, 0x2A, 0x2A, 0x79, 0x83, 0x30, 0x19,
+        ];
+        let sig_bytes: [u8; 64] = [
+            0x5F, 0x63, 0xC9, 0x8C, 0x22, 0xC2, 0x7E, 0x68, 0x9E, 0x4D, 0x3D, 0xFE, 0x3E, 0x95, 0x6C, 0xF0,
+            0xCE, 0x5D, 0xA3, 0xBA, 0x6D, 0x52, 0x70, 0xD4, 0x79, 0xC2, 0x4A, 0xBB, 0x26, 0x18, 0x84, 0x5E,
+            0x51, 0xFC, 0xEC, 0xC8, 0x60, 0x9C, 0x0B, 0x21, 0x4A, 0xFD, 0xF0, 0x45, 0xEF, 0x92, 0x9D, 0xEC,
+            0x32, 0x4C, 0x7A, 0x00, 0x6A, 0x7C, 0x75, 0x52, 0xF0, 0xFC, 0x86, 0x76, 0xE6, 0x82, 0xA4, 0x07,
+        ];
+        let domain = b"ODIN_DEED_V2\x00\x00\x00\x00";
+        let mut msg = [0u8; 16 + 156];
+        msg[0..16].copy_from_slice(domain);
+        for i in 0..156 {
+            msg[16 + i] = i as u8;
+        }
+
+        let pk = ed25519_compact::PublicKey::from_slice(&pk_bytes).expect("valid pk");
+        let sig = ed25519_compact::Signature::from_slice(&sig_bytes).expect("valid sig");
+        assert!(pk.verify(&msg, &sig).is_ok(), "Ed25519 signature verification must succeed");
+    }
+
+    #[repr(C, align(64))]
+    struct AlignedBuffer([u8; 256]);
+
+    fn create_signed_v2_deed_raw(
+        seq: u32,
+        offset: u32,
+        len: u32,
+        op: u8,
+        issuer: &[u8; 16],
+        seed_bytes: &[u8; 32],
+    ) -> AlignedBuffer {
+        let mut raw = AlignedBuffer([0u8; 256]);
+        raw.0[0] = 0x59; // 'Y'
+        raw.0[1] = 0x47; // 'G'
+        raw.0[2] = deed::DEED_VERSION_02;
+        raw.0[3] = deed::FLAG_IS_MUTATION | deed::FLAG_AST_STRICT;
+        raw.0[4..8].copy_from_slice(&seq.to_le_bytes());
+        raw.0[8..24].copy_from_slice(issuer);
+        raw.0[0x68..0x6C].copy_from_slice(&1000u32.to_le_bytes());
+        raw.0[0x6C] = op;
+        raw.0[0x70..0x74].copy_from_slice(&104u32.to_le_bytes());
+        raw.0[0x74..0x78].copy_from_slice(&offset.to_le_bytes());
+        raw.0[0x78..0x7C].copy_from_slice(&len.to_le_bytes());
+
+        let seed = ed25519_compact::Seed::from(*seed_bytes);
+        let kp = ed25519_compact::KeyPair::from_seed(seed);
+        let deed = unsafe { &mut *(raw.0.as_mut_ptr() as *mut TransitionDeed) };
+        deed.sign_with_key(&kp.sk);
+        raw
+    }
+
+    const ROOT_SEED: [u8; 32] = *b"odin_root_authority_seed_v2_key!";
+    const ATTACKER_SEED: [u8; 32] = *b"malicious_attacker_signing_key!!";
+
+    #[test]
+    fn test_ed25519_valid_signature_acceptance() {
+        let raw = create_signed_v2_deed_raw(42, 50, 20, 1, &deed::TRUSTED_ROOT_ISSUER, &ROOT_SEED);
+        let deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse valid deed");
+        assert!(deed.verify_authority(10, 1000).is_ok(), "Authentic root-signed deed must pass authority verification");
+    }
+
+    #[test]
+    fn test_ed25519_forged_garbage_signature_rejection() {
+        let mut raw = create_signed_v2_deed_raw(42, 50, 20, 1, &deed::TRUSTED_ROOT_ISSUER, &ROOT_SEED);
+        // Overwrite signature with forged garbage
+        raw.0[0x9C..0xDC].fill(0xAA);
+        let deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse deed");
+        assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::InvalidSignature));
+    }
+
+    #[test]
+    fn test_ed25519_unauthorized_key_rejection() {
+        // Valid Ed25519 signature, but from unauthorized attacker key
+        let raw = create_signed_v2_deed_raw(42, 50, 20, 1, &deed::TRUSTED_ROOT_ISSUER, &ATTACKER_SEED);
+        let deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse deed");
+        assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::InvalidSignature));
+    }
+
+    #[test]
+    fn test_ed25519_tampered_target_offset_rejection() {
+        let mut raw = create_signed_v2_deed_raw(42, 50, 20, 1, &deed::TRUSTED_ROOT_ISSUER, &ROOT_SEED);
+        // Tamper with offset: 50 -> 51
+        raw.0[0x74..0x78].copy_from_slice(&51u32.to_le_bytes());
+        let deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse deed");
+        assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::InvalidSignature));
+    }
+
+    #[test]
+    fn test_ed25519_tampered_target_length_rejection() {
+        let mut raw = create_signed_v2_deed_raw(42, 50, 20, 1, &deed::TRUSTED_ROOT_ISSUER, &ROOT_SEED);
+        // Tamper with length: 20 -> 21
+        raw.0[0x78..0x7C].copy_from_slice(&21u32.to_le_bytes());
+        let deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse deed");
+        assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::InvalidSignature));
+    }
+
+    #[test]
+    fn test_ed25519_tampered_sequence_rejection() {
+        let mut raw = create_signed_v2_deed_raw(42, 50, 20, 1, &deed::TRUSTED_ROOT_ISSUER, &ROOT_SEED);
+        // Tamper with sequence: 42 -> 43
+        raw.0[4..8].copy_from_slice(&43u32.to_le_bytes());
+        let deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse deed");
+        assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::InvalidSignature));
+    }
+
+    #[test]
+    fn test_ed25519_tampered_operation_rejection() {
+        let mut raw = create_signed_v2_deed_raw(42, 50, 20, 1, &deed::TRUSTED_ROOT_ISSUER, &ROOT_SEED);
+        // Tamper with operation opcode: 1 -> 2
+        raw.0[0x6C] = 2;
+        let deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse deed");
+        assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::InvalidSignature));
+    }
+
+    #[test]
+    fn test_ed25519_cross_protocol_domain_separation_rejection() {
+        let mut raw = AlignedBuffer([0u8; 256]);
+        raw.0[0] = 0x59;
+        raw.0[1] = 0x47;
+        raw.0[2] = deed::DEED_VERSION_02;
+        raw.0[3] = deed::FLAG_IS_MUTATION | deed::FLAG_AST_STRICT;
+        raw.0[4..8].copy_from_slice(&42u32.to_le_bytes());
+        raw.0[8..24].copy_from_slice(&deed::TRUSTED_ROOT_ISSUER);
+        raw.0[0x68..0x6C].copy_from_slice(&1000u32.to_le_bytes());
+        raw.0[0x6C] = 1;
+        raw.0[0x70..0x74].copy_from_slice(&104u32.to_le_bytes());
+        raw.0[0x74..0x78].copy_from_slice(&50u32.to_le_bytes());
+        raw.0[0x78..0x7C].copy_from_slice(&20u32.to_le_bytes());
+
+        // Sign using a different domain separator: b"OTHER_PROTOCOL\x00\x00"
+        let mut foreign_msg = [0u8; 172];
+        foreign_msg[0..16].copy_from_slice(b"OTHER_PROTOCOL\x00\x00");
+        foreign_msg[16..172].copy_from_slice(&raw.0[0..156]);
+
+        let seed = ed25519_compact::Seed::from(ROOT_SEED);
+        let kp = ed25519_compact::KeyPair::from_seed(seed);
+        let foreign_sig = kp.sk.sign(&foreign_msg, None);
+        raw.0[0x9C..0xDC].copy_from_slice(&foreign_sig[..]);
+
+        let deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse deed");
+        // Cross-protocol reuse must fail closed!
+        assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::InvalidSignature));
+    }
+
+    #[test]
+    fn test_ed25519_single_bit_flip_signature_rejection() {
+        let mut raw = create_signed_v2_deed_raw(42, 50, 20, 1, &deed::TRUSTED_ROOT_ISSUER, &ROOT_SEED);
+        // Flip exactly 1 bit in signature
+        raw.0[0x9C] ^= 0x01;
+        let deed = TransitionDeed::from_bytes(&raw.0).expect("Must parse deed");
+        assert_eq!(deed.verify_authority(10, 1000), Err(deed::DeedError::InvalidSignature));
     }
 
     #[test]

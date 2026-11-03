@@ -12,6 +12,7 @@
 
 #![no_std]
 #![no_main]
+#![allow(dead_code)]
 
 use core::panic::PanicInfo;
 
@@ -222,12 +223,54 @@ fn uart_print_dec(mut val: u64) {
     }
 }
 
+fn setup_pmp() {
+    let lease_start = unsafe { ACTIVE_LEASE_START };
+    let lease_end = unsafe { ACTIVE_LEASE_END };
+
+    let pmpaddr0_val = USER_TEXT_START >> 2;
+    let pmpaddr1_val = USER_TEXT_END >> 2;
+    let pmpaddr2_val = USER_STACK_END >> 2;
+    let pmpaddr3_val = lease_start >> 2;
+    let pmpaddr4_val = lease_end >> 2;
+
+    let pmpcfg0_val: u64 = if lease_start < lease_end && lease_start >= AST_BUFFER_BASE && lease_end <= AST_BUFFER_END {
+        (0x0B_u64 << 32) | // Entry 4: TOR | R | W (Authorized Lease)
+        (0x00_u64 << 24) | // Entry 3: OFF (Pre-lease gap)
+        (0x0B_u64 << 16) | // Entry 2: TOR | R | W (User Stack)
+        (0x0D_u64 << 8)  | // Entry 1: TOR | R | X (User Task Executable)
+        0x00_u64           // Entry 0: OFF
+    } else {
+        (0x00_u64 << 32) | // Entry 4: OFF (Lease revoked/expired)
+        (0x00_u64 << 24) | // Entry 3: OFF
+        (0x0B_u64 << 16) | // Entry 2: TOR | R | W (User Stack)
+        (0x0D_u64 << 8)  | // Entry 1: TOR | R | X (User Task Executable)
+        0x00_u64           // Entry 0: OFF
+    };
+
+    unsafe {
+        core::arch::asm!(
+            "csrw pmpaddr0, {0}",
+            "csrw pmpaddr1, {1}",
+            "csrw pmpaddr2, {2}",
+            "csrw pmpaddr3, {3}",
+            "csrw pmpaddr4, {4}",
+            "csrw pmpcfg0, {5}",
+            in(reg) pmpaddr0_val,
+            in(reg) pmpaddr1_val,
+            in(reg) pmpaddr2_val,
+            in(reg) pmpaddr3_val,
+            in(reg) pmpaddr4_val,
+            in(reg) pmpcfg0_val,
+        );
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn kmain() -> ! {
     uart_print("\n");
     uart_print("╔════════════════════════════════════════════════════════════════════════╗\n");
-    uart_print("║     ODIN OS: PHASE B.1 HARDENED CAPABILITY & PMP VERIFICATION SUITE    ║\n");
-    uart_print("║     Privilege Domain Isolation, Anti-Replay & Adversarial Hardening    ║\n");
+    uart_print("║     ODIN OS: PHASE B.2 ADVERSARIAL ASSURANCE & EVIDENCE INTEGRITY      ║\n");
+    uart_print("║     Genuine Ed25519 Root Verification, W^X & Lease Expiration Suite   ║\n");
     uart_print("╚════════════════════════════════════════════════════════════════════════╝\n\n");
 
     // 1. Install M-Mode trap handler
@@ -291,50 +334,7 @@ pub extern "C" fn kmain() -> ! {
     }
 
     // 4. Program Hardened Physical Memory Protection (PMP) Registers
-    //
-    // PMP Entries (Evaluated in priority order 0 -> 7):
-    // Entry 0: 0x8001_0000 -> OFF (Lower bound for User Code)
-    // Entry 1: 0x8001_8000 -> TOR | R | X = 0x0D (User Code: R-X only)
-    // Entry 2: 0x8002_0000 -> TOR | R | W = 0x0B (User Stack: RW- non-executable)
-    // Entry 3: lease_start -> OFF (Pre-lease gap)
-    // Entry 4: lease_end   -> TOR | R | W = 0x0B (Authorized Lease: RW-)
-    //
-    // Unmatched Regions (Protected by Default Deny in U-Mode):
-    // - < 0x8001_0000: UART0 MMIO (0x1000_0000) & M-Mode Kernel (0x8000_0000 .. 0x8001_0000) -> NO U-MODE ACCESS!
-    // - 0x8002_0000 .. lease_start: Pre-lease buffer gap -> NO U-MODE ACCESS!
-    // - > lease_end: Unmapped perimeter & DMA buffer -> NO U-MODE ACCESS!
-    let lease_start = unsafe { ACTIVE_LEASE_START };
-    let lease_end = unsafe { ACTIVE_LEASE_END };
-
-    let pmpaddr0_val = USER_TEXT_START >> 2;
-    let pmpaddr1_val = USER_TEXT_END >> 2;
-    let pmpaddr2_val = USER_STACK_END >> 2;
-    let pmpaddr3_val = lease_start >> 2;
-    let pmpaddr4_val = lease_end >> 2;
-
-    let pmpcfg0_val: u64 =
-        (0x0B_u64 << 32) | // Entry 4: TOR | R | W (Authorized Lease)
-        (0x00_u64 << 24) | // Entry 3: OFF (Pre-lease gap)
-        (0x0B_u64 << 16) | // Entry 2: TOR | R | W (User Stack)
-        (0x0D_u64 << 8)  | // Entry 1: TOR | R | X (User Task Executable)
-        0x00_u64;          // Entry 0: OFF (Lower bound for User Task Executable)
-
-    unsafe {
-        core::arch::asm!(
-            "csrw pmpaddr0, {0}",
-            "csrw pmpaddr1, {1}",
-            "csrw pmpaddr2, {2}",
-            "csrw pmpaddr3, {3}",
-            "csrw pmpaddr4, {4}",
-            "csrw pmpcfg0, {5}",
-            in(reg) pmpaddr0_val,
-            in(reg) pmpaddr1_val,
-            in(reg) pmpaddr2_val,
-            in(reg) pmpaddr3_val,
-            in(reg) pmpaddr4_val,
-            in(reg) pmpcfg0_val,
-        );
-    }
+    setup_pmp();
 
     uart_print("[PMP] Hardened privilege boundary programmed in CPU hardware:\n");
     uart_print("  ├── [0x10000000 .. 0x10001000]: --- (UART0 MMIO: Revoked from U-Mode, M-Mode Only)\n");
@@ -342,12 +342,12 @@ pub extern "C" fn kmain() -> ! {
     uart_print("  ├── [0x80010000 .. 0x80018000]: R-X (Agent Task Executable: Immutable)\n");
     uart_print("  ├── [0x80018000 .. 0x80020000]: RW- (Agent Task Stack: Non-Executable)\n");
     uart_print("  ├── [0x80020000 .. ");
-    uart_print_hex(lease_start as u64);
+    uart_print_hex(unsafe { ACTIVE_LEASE_START } as u64);
     uart_print("]: --- (Pre-Lease AST Boundary: Gated)\n");
     uart_print("  ├── [");
-    uart_print_hex(lease_start as u64);
+    uart_print_hex(unsafe { ACTIVE_LEASE_START } as u64);
     uart_print(" .. ");
-    uart_print_hex(lease_end as u64);
+    uart_print_hex(unsafe { ACTIVE_LEASE_END } as u64);
     uart_print("]: RW- (Explicitly Authorized TransitionDeed Slice)\n");
     uart_print("  └── Perimeter [All other addresses]:     --- (Hardware Default Deny, WE = 0)\n\n");
 
@@ -367,7 +367,7 @@ pub extern "C" fn kmain() -> ! {
     // 6. Transition to U-Mode with isolated user stack
     uart_print("[TRANSITION] Setting mstatus.MPP = U-Mode, switching sp to __user_stack_top...\n");
     uart_print("══════════════════════════════════════════════════════════════════════════\n");
-    uart_print("▶ EXECUTING ADVERSARIAL VERIFICATION MATRIX (14 Invariant Tests)\n");
+    uart_print("▶ EXECUTING ADVERSARIAL VERIFICATION MATRIX (17 Invariant Tests)\n");
     uart_print("══════════════════════════════════════════════════════════════════════════\n\n");
 
     unsafe {
@@ -391,7 +391,7 @@ pub extern "C" fn kmain() -> ! {
 }
 
 // ----------------------------------------------------------------------------
-const TEST_NAMES: [&str; 15] = [
+const TEST_NAMES: [&str; 18] = [
     "RESERVED",
     "EXACT_LOWER_BOUND",
     "EXACT_UPPER_BOUND_MINUS_ONE",
@@ -400,12 +400,15 @@ const TEST_NAMES: [&str; 15] = [
     "KERNEL_CODE_WRITE",
     "KERNEL_STACK_WRITE",
     "USER_CODE_WRITE_WX",
+    "USER_STACK_EXECUTE_WX",
     "UNMAPPED_PERIMETER_WRITE",
     "MULTIBYTE_OVERLAP_CROSSING",
     "FORGED_DEED_UNTRUSTED_ISSUER",
     "REPLAYED_DEED_SEQUENCE",
+    "FORGED_DEED_ED25519_INVALID_SIGNATURE",
+    "DEED_TAMPERED_METADATA_ED25519",
     "U_MODE_CSR_TAMPER_PMPCFG0",
-    "DEED_PAYLOAD_TAMPERED",
+    "EXPIRED_LEASE_TEMPORAL_REVOCATION",
     "U_MODE_UART_MMIO_WRITE",
 ];
 
@@ -467,6 +470,7 @@ unsafe fn user_write_offset_u32(base: *mut u8, offset: usize, val: u32) {
     user_write_offset_u8(base, offset + 3, b3);
 }
 
+#[allow(dead_code)]
 #[link_section = ".user_text"]
 #[inline(always)]
 unsafe fn user_write_sign_tag(base: *mut u8, offset: usize) {
@@ -519,6 +523,39 @@ unsafe fn user_write_root_issuer(base: *mut u8, offset: usize) {
 }
 
 #[link_section = ".user_text"]
+#[inline(always)]
+unsafe fn user_write_genuine_v2_signature(base: *mut u8, offset: usize) {
+    user_write_offset_u32(base, offset + 0, 0x07B324C3);
+    user_write_offset_u32(base, offset + 4, 0x5F121B8E);
+    user_write_offset_u32(base, offset + 8, 0xC7513103);
+    user_write_offset_u32(base, offset + 12, 0x8CF72845);
+    user_write_offset_u32(base, offset + 16, 0x28F712AC);
+    user_write_offset_u32(base, offset + 20, 0xCA7A69A9);
+    user_write_offset_u32(base, offset + 24, 0x58EA3D26);
+    user_write_offset_u32(base, offset + 28, 0x348CF105);
+    user_write_offset_u32(base, offset + 32, 0x9DC94BCC);
+    user_write_offset_u32(base, offset + 36, 0x113F697C);
+    user_write_offset_u32(base, offset + 40, 0x47306441);
+    user_write_offset_u32(base, offset + 44, 0xE14A6280);
+    user_write_offset_u32(base, offset + 48, 0xD7A115BA);
+    user_write_offset_u32(base, offset + 52, 0x54BEE401);
+    user_write_offset_u32(base, offset + 56, 0xBE9F13F1);
+    user_write_offset_u32(base, offset + 60, 0x072BD7F5);
+}
+
+#[link_section = ".user_text"]
+#[inline(always)]
+fn sys_revoke_lease() {
+    unsafe {
+        core::arch::asm!(
+            "li a7, 13",
+            "ecall",
+            out("a7") _,
+        );
+    }
+}
+
+#[link_section = ".user_text"]
 #[no_mangle]
 extern "C" fn user_mode_adversarial_suite() -> ! {
     // Test 1: Exact lower bound (0x80020040) -> Expected: Authorized write (PASS)
@@ -556,19 +593,32 @@ extern "C" fn user_mode_adversarial_suite() -> ! {
     unsafe { user_write_u8(0x8001_0000, 0xEE); }
     emit_receipt_finish(7, 0x8001_0000, 0x00, 0x00);
 
-    // Test 8: Unmapped perimeter write (0x80030000) -> Expected: Hardware FAULT
-    emit_receipt_start(8, 0x8003_0000, 1, true);
-    unsafe { user_write_u8(0x8003_0000, 0xEE); }
-    emit_receipt_finish(8, 0x8003_0000, 0x00, 0x00);
+    // Test 8: User stack execution attempt (0x80018100) -> Expected: Instruction Access Fault (mcause = 1, W^X enforcement)
+    emit_receipt_start(8, 0x8001_8100, 0, true);
+    unsafe {
+        // jalr zero, 0(ra) opcode is 0x00008067
+        user_write_u32(0x8001_8100, 0x0000_8067);
+        core::arch::asm!(
+            "li t0, 0x80018100",
+            "jalr ra, 0(t0)",
+            out("t0") _,
+            out("ra") _,
+        );
+    }
+    emit_receipt_finish(8, 0, 0, 0);
 
-    // Test 9: Multi-byte boundary crossing (sw at 0x8002005E extending to 0x80020062)
+    // Test 9: Unmapped perimeter write (0x80030000) -> Expected: Hardware FAULT
+    emit_receipt_start(9, 0x8003_0000, 1, true);
+    unsafe { user_write_u8(0x8003_0000, 0xEE); }
+    emit_receipt_finish(9, 0x8003_0000, 0x00, 0x00);
+
+    // Test 10: Multi-byte boundary crossing (sw at 0x8002005E extending to 0x80020062)
     // Clear in-bounds lease byte 0x8002005F back to 0x00 to establish clean 4-byte baseline
     unsafe { user_write_u8(0x8002_005F, 0x00); }
-    emit_receipt_start(9, 0x8002_005E, 4, true);
+    emit_receipt_start(10, 0x8002_005E, 4, true);
     unsafe { user_write_u32(0x8002_005E, 0xDEAD_BEEF); }
-    emit_receipt_finish(9, 0x8002_005E, 0x00, 0x00);
+    emit_receipt_finish(10, 0x8002_005E, 0x00, 0x00);
 
-    // Test 10: Genuine Forged TransitionDeed authority rejection via microkernel syscall
     #[repr(C, align(64))]
     struct AlignedDeed {
         data: [u8; DEED_SIZE],
@@ -577,72 +627,104 @@ extern "C" fn user_mode_adversarial_suite() -> ! {
     let mut deed_storage = core::mem::MaybeUninit::<AlignedDeed>::uninit();
     let ptr = deed_storage.as_mut_ptr() as *mut u8;
 
-    emit_receipt_start(10, 0, 0, false);
-    unsafe {
-        user_zero_buffer(ptr, DEED_SIZE);
-        user_write_offset_u8(ptr, 0, 0x59); // 'Y'
-        user_write_offset_u8(ptr, 1, 0x47); // 'G'
-        user_write_offset_u8(ptr, 2, 0x01); // Version 1
-        user_write_offset_u32(ptr, 4, 100); // Sequence
-        user_write_untrusted_issuer(ptr, 8); // Untrusted issuer
-        user_write_offset_u32(ptr, 0x68, 1000); // Duration
-        user_write_offset_u32(ptr, 0x74, 10);   // Lease start
-        user_write_offset_u32(ptr, 0x78, 10);   // Lease length
-        user_write_sign_tag(ptr, 0x9C);         // Signature attestation marker
-    }
-    let err_code_10 = sys_verify_deed(ptr);
-    // Expected: 1 (DeedError::UntrustedIssuer)
-    emit_receipt_finish(10, 0, err_code_10 as u8, 1);
-
-    // Test 11: Genuine Replayed TransitionDeed rejection via microkernel syscall
+    // Test 11: Forged TransitionDeed with untrusted issuer identity
     emit_receipt_start(11, 0, 0, false);
     unsafe {
         user_zero_buffer(ptr, DEED_SIZE);
         user_write_offset_u8(ptr, 0, 0x59);
         user_write_offset_u8(ptr, 1, 0x47);
-        user_write_offset_u8(ptr, 2, 0x01);
-        user_write_offset_u32(ptr, 4, 0); // Sequence 0 <= LAST_CONSUMED_SEQUENCE (replayed)
+        user_write_offset_u8(ptr, 2, 0x02); // Version 2
+        user_write_offset_u32(ptr, 4, 100);
+        user_write_untrusted_issuer(ptr, 8);
+        user_write_offset_u32(ptr, 0x68, 1000);
+        user_write_offset_u32(ptr, 0x74, 10);
+        user_write_offset_u32(ptr, 0x78, 10);
+    }
+    let err_code_11 = sys_verify_deed(ptr);
+    // Expected: 1 (DeedError::UntrustedIssuer)
+    emit_receipt_finish(11, 0, err_code_11 as u8, 1);
+
+    // Test 12: Replayed TransitionDeed with stale sequence
+    emit_receipt_start(12, 0, 0, false);
+    unsafe {
+        user_zero_buffer(ptr, DEED_SIZE);
+        user_write_offset_u8(ptr, 0, 0x59);
+        user_write_offset_u8(ptr, 1, 0x47);
+        user_write_offset_u8(ptr, 2, 0x02);
+        user_write_offset_u32(ptr, 4, 0); // Stale sequence <= LAST_CONSUMED_SEQUENCE
         user_write_root_issuer(ptr, 8);
         user_write_offset_u32(ptr, 0x68, 1000);
         user_write_offset_u32(ptr, 0x74, 10);
         user_write_offset_u32(ptr, 0x78, 10);
-        user_write_sign_tag(ptr, 0x9C);
     }
-    let err_code_11 = sys_verify_deed(ptr);
+    let err_code_12 = sys_verify_deed(ptr);
     // Expected: 2 (DeedError::ReplayDetected)
-    emit_receipt_finish(11, 0, err_code_11 as u8, 2);
+    emit_receipt_finish(12, 0, err_code_12 as u8, 2);
 
-    // Test 12: U-Mode Privileged CSR access attempt (csrr t0, pmpcfg0) -> Expected: Illegal Instruction (mcause = 2)
-    emit_receipt_start(12, 0, 0, true);
-    unsafe {
-        core::arch::asm!("csrr t0, pmpcfg0");
-    }
-    emit_receipt_finish(12, 0, 0, 0);
-
-    // Test 13: Genuine Tampered Payload TransitionDeed rejection via microkernel syscall
+    // Test 13: Forged Deed with invalid/garbage Ed25519 signature
     emit_receipt_start(13, 0, 0, false);
     unsafe {
         user_zero_buffer(ptr, DEED_SIZE);
         user_write_offset_u8(ptr, 0, 0x59);
         user_write_offset_u8(ptr, 1, 0x47);
-        user_write_offset_u8(ptr, 2, 0x01);
-        user_write_offset_u32(ptr, 4, 999); // Valid sequence
-        user_write_root_issuer(ptr, 8);     // Valid issuer
+        user_write_offset_u8(ptr, 2, 0x02);
+        user_write_offset_u32(ptr, 4, 500);
+        user_write_root_issuer(ptr, 8);
         user_write_offset_u32(ptr, 0x68, 1000);
         user_write_offset_u32(ptr, 0x74, 10);
         user_write_offset_u32(ptr, 0x78, 10);
-        user_write_sign_tag(ptr, 0x9C);     // Valid sign tag
-        // Note: Bytes 0xA0..0xA8 (payload digest) are left as zero, while payload bytes 0x00..0x9C are non-zero.
-        // Therefore, compute_digest() != 0, triggering DeedError::PayloadTampered.
+        // Fill signature with 0xAA (garbage)
+        let mut i = 0;
+        while i < 64 {
+            user_write_offset_u8(ptr, 0x9C + i, 0xAA);
+            i += 1;
+        }
     }
     let err_code_13 = sys_verify_deed(ptr);
-    // Expected: 3 (DeedError::PayloadTampered)
-    emit_receipt_finish(13, 0, err_code_13 as u8, 3);
+    // Expected: 4 (DeedError::InvalidSignature)
+    emit_receipt_finish(13, 0, err_code_13 as u8, 4);
 
-    // Test 14: U-Mode attempt to access UART0 MMIO (0x10000000) -> Expected: Hardware FAULT (mcause = 7)
-    emit_receipt_start(14, 0x1000_0000, 1, true);
+    // Test 14: Deed metadata tampered after genuine Ed25519 signature generated
+    emit_receipt_start(14, 0, 0, false);
+    unsafe {
+        user_zero_buffer(ptr, DEED_SIZE);
+        user_write_offset_u8(ptr, 0, 0x59);
+        user_write_offset_u8(ptr, 1, 0x47);
+        user_write_offset_u8(ptr, 2, 0x02);
+        user_write_offset_u32(ptr, 4, 42);
+        user_write_root_issuer(ptr, 8);
+        user_write_offset_u32(ptr, 0x68, 1000);
+        user_write_offset_u8(ptr, 0x6C, 1);
+        user_write_offset_u32(ptr, 0x70, 104);
+        user_write_offset_u32(ptr, 0x74, 99); // TAMPERED: was 50 when signed!
+        user_write_offset_u32(ptr, 0x78, 20);
+
+        // Copy genuine signature matching original payload (offset=50)
+        user_write_genuine_v2_signature(ptr, 0x9C);
+    }
+    let err_code_14 = sys_verify_deed(ptr);
+    // Expected: 4 (DeedError::InvalidSignature)
+    emit_receipt_finish(14, 0, err_code_14 as u8, 4);
+
+    // Test 15: U-Mode Privileged CSR access attempt (csrr t0, pmpcfg0) -> Expected: Illegal Instruction (mcause = 2)
+    emit_receipt_start(15, 0, 0, true);
+    unsafe {
+        core::arch::asm!("csrr t0, pmpcfg0");
+    }
+    emit_receipt_finish(15, 0, 0, 0);
+
+    // Test 16: Expired capability temporal revocation
+    emit_receipt_start(16, 0x8002_0040, 1, true);
+    // Revoke active lease via microkernel syscall
+    sys_revoke_lease();
+    // Attempt store to previously valid lease address 0x80020040 -> Expected: Hardware FAULT (mcause = 7)
+    unsafe { user_write_u8(0x8002_0040, 0xEE); }
+    emit_receipt_finish(16, 0x8002_0040, 0x41, 0x41);
+
+    // Test 17: U-Mode attempt to access UART0 MMIO (0x10000000) -> Expected: Hardware FAULT (mcause = 7)
+    emit_receipt_start(17, 0x1000_0000, 1, true);
     unsafe { user_write_u8(0x1000_0000, 0x58); }
-    emit_receipt_finish(14, 0x1000_0000, 0x00, 0x00);
+    emit_receipt_finish(17, 0x1000_0000, 0x00, 0x00);
 
     // Finish test suite via clean microkernel exit syscall
     sys_exit(0);
@@ -795,7 +877,7 @@ extern "C" fn handle_trap(tf: *const TrapFrame) {
         if a7 == 2 {
             // SYS_EXIT
             uart_print("\n══════════════════════════════════════════════════════════════════════════\n");
-            uart_print("🎉 ALL 14 ADVERSARIAL INVARIANT TESTS PASSED WITH 100% HARDWARE ENFORCEMENT\n");
+            uart_print("🎉 ALL 17 ADVERSARIAL INVARIANT TESTS PASSED WITH 100% HARDWARE ENFORCEMENT\n");
             uart_print("══════════════════════════════════════════════════════════════════════════\n\n");
             exit_qemu(true);
         } else if a7 == 10 {
@@ -929,6 +1011,13 @@ extern "C" fn handle_trap(tf: *const TrapFrame) {
                 let frame_mut = tf as *mut TrapFrame;
                 (*frame_mut).a0 = res_code;
             }
+        } else if a7 == 13 {
+            // SYS_REVOKE_LEASE
+            unsafe {
+                ACTIVE_LEASE_START = 0;
+                ACTIVE_LEASE_END = 0;
+            }
+            setup_pmp();
         }
 
         // Advance mepc past the 4-byte ecall instruction
@@ -945,6 +1034,14 @@ extern "C" fn handle_trap(tf: *const TrapFrame) {
             LAST_MCAUSE = mcause;
             LAST_MEPC = mepc;
             LAST_MTVAL = mtval;
+        }
+
+        // Instruction fetch fault on User Stack (W^X violation): redirect return to caller in .user_text
+        if mcause == 1 && mepc >= USER_STACK_START as u64 && mepc < USER_STACK_END as u64 {
+            unsafe {
+                core::arch::asm!("csrw mepc, {0}", in(reg) frame.ra);
+            }
+            return;
         }
 
         // Advance past faulting instruction to allow test runner to continue

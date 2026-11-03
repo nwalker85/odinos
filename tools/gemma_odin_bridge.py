@@ -21,12 +21,14 @@ import urllib.request
 import time
 
 LM_STUDIO_URL = "http://127.0.0.1:6701/v1/chat/completions"
-KERNEL_BIN = os.path.expanduser("~/src/platforms/ravenhelm/odin-kernel/target/riscv64gc-unknown-none-elf/debug/odin-kernel")
+KERNEL_BIN = os.path.expanduser("~/src/platforms/ravenhelm/odin-kernel/target/riscv64gc-unknown-none-elf/release/odin-kernel")
 
 DEED_MAGIC = b"YG" # [0x59, 0x47]
-DEED_VERSION = 1
+DEED_VERSION = 2
 FLAG_IS_MUTATION = 1 << 1
 FLAG_AST_STRICT = 1 << 3
+DOMAIN_SEPARATOR = b"ODIN_DEED_V2\x00\x00\x00\x00"
+ROOT_SEED = b"odin_root_authority_seed_v2_key!"
 
 def ask_gemma(prompt: str, system_prompt: str) -> dict:
     payload = {
@@ -52,11 +54,13 @@ def ask_gemma(prompt: str, system_prompt: str) -> dict:
             content = content.split("```")[1].split("```")[0].strip()
         return json.loads(content)
 
-def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: int, issuer: bytes = b"did:odin:root:01", sign_magic: bytes = b"SIGN") -> bytes:
+def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: int, issuer: bytes = b"did:odin:root:01", signing_key: bytes = None) -> bytes:
     """
     Constructs an exact 256-byte cache-line aligned TransitionDeed.
-    Matches #[repr(C, align(64))] struct TransitionDeed in deed.rs.
+    Matches #[repr(C, align(64))] struct TransitionDeed in deed.rs (Version 2).
     """
+    import nacl.signing
+
     buf = bytearray(256)
     
     # 0x00..0x08: magic (2), version (1), flags (1), sequence (4)
@@ -86,22 +90,16 @@ def build_transition_deed(sequence: int, anchor_id: int, offset: int, length: in
     # 0x7C..0x9C: new_state_digest (32 bytes)
     buf[124:156] = b"\xCC" * 32
 
-    # Compute deterministic payload integrity binding over metadata (0x00..0x9C)
-    fnv_offset = 0xcbf29ce484222325
-    fnv_prime = 0x100000001b3
-    h = fnv_offset
-    for b in buf[:156]:
-        h ^= b
-        h = (h * fnv_prime) & 0xFFFFFFFFFFFFFFFF
-    digest = struct.pack("<Q", h)
+    # Compute genuine Ed25519 signature over canonical domain-separated message
+    # canonical_message: DOMAIN_SEPARATOR (16 bytes) || metadata (156 bytes) = 172 bytes
+    canonical_msg = DOMAIN_SEPARATOR + bytes(buf[:156])
+    seed = signing_key if signing_key is not None else ROOT_SEED
+    sk = nacl.signing.SigningKey(seed)
+    signed = sk.sign(canonical_msg)
+    sig_bytes = signed.signature # exactly 64 bytes
 
     # 0x9C..0xDC: signature (64 bytes)
-    # [156:160]: Root authority tag "SIGN"
-    # [160:168]: Deterministic payload binding digest
-    # [168:220]: Reserved attestation field
-    buf[156:160] = sign_magic
-    buf[160:168] = digest
-    buf[168:220] = b"\x00" * 52
+    buf[156:220] = sig_bytes
 
     # 0xDC..0x100: padding (36 bytes) -> automatically zeroes
     return bytes(buf)
@@ -143,7 +141,7 @@ def main():
     # Ensure kernel is built
     print("[BUILD] Compiling bare-metal riscv64gc kernel...")
     subprocess.run(
-        ["cargo", "build", "--bin", "odin-kernel", "--target", "riscv64gc-unknown-none-elf"],
+        ["cargo", "build", "--release", "--bin", "odin-kernel", "--target", "riscv64gc-unknown-none-elf"],
         cwd=os.path.expanduser("~/src/platforms/ravenhelm/odin-kernel"),
         check=True
     )

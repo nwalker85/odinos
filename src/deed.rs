@@ -6,7 +6,14 @@
 
 pub const DEED_MAGIC: [u8; 2] = [0x59, 0x47]; // "YG" (Yggdrasil)
 pub const DEED_VERSION_01: u8 = 0x01;
+pub const DEED_VERSION_02: u8 = 0x02;
 pub const DEED_SIZE: usize = 256;
+pub const DOMAIN_SEPARATOR: [u8; 16] = *b"ODIN_DEED_V2\x00\x00\x00\x00";
+
+pub const TRUSTED_ROOT_PUBLIC_KEY: [u8; 32] = [
+    0xFD, 0xC8, 0x86, 0xB0, 0xA3, 0xAE, 0xD3, 0x9A, 0x07, 0xF6, 0x5F, 0x21, 0x43, 0x88, 0x64, 0x48,
+    0x02, 0xA5, 0x5E, 0x59, 0xDE, 0xC4, 0xB5, 0xED, 0x34, 0x61, 0x2A, 0x2A, 0x79, 0x83, 0x30, 0x19,
+];
 
 // Flag Bitmasks
 pub const FLAG_IS_EPHEMERAL: u8 = 1 << 0;
@@ -85,7 +92,7 @@ impl TransitionDeed {
         if bytes[0..2] != DEED_MAGIC {
             return Err(DeedError::InvalidMagic);
         }
-        if bytes[2] != DEED_VERSION_01 {
+        if bytes[2] != DEED_VERSION_01 && bytes[2] != DEED_VERSION_02 {
             return Err(DeedError::UnsupportedVersion);
         }
 
@@ -145,18 +152,52 @@ impl TransitionDeed {
             return Err(DeedError::OutOfBoundsLease);
         }
 
-        // 4. Attestation marker and payload integrity binding check
-        // NOTE: In Phase B.1 this enforces structural attestation and deterministic 64-bit
-        // payload integrity binding over metadata bytes 0x00..0x9C. Full cryptographic Ed25519
-        // verification against a pinned public key is designated for Phase C hardware acceleration.
-        if !self.has_valid_attestation_marker() {
-            return Err(DeedError::InvalidSignature);
-        }
-        if !self.has_valid_payload_binding() {
-            return Err(DeedError::PayloadTampered);
+        // 4. Cryptographic authority attestation & integrity verification
+        if self.version == DEED_VERSION_02 {
+            self.verify_ed25519_signature(&TRUSTED_ROOT_PUBLIC_KEY)?;
+        } else if self.version == DEED_VERSION_01 {
+            if !self.has_valid_attestation_marker() {
+                return Err(DeedError::InvalidSignature);
+            }
+            if !self.has_valid_payload_binding() {
+                return Err(DeedError::PayloadTampered);
+            }
+        } else {
+            return Err(DeedError::UnsupportedVersion);
         }
 
         Ok(())
+    }
+
+    /// Constructs the canonical domain-separated message for Ed25519 signing and verification.
+    /// Format: [DOMAIN_SEPARATOR (16 bytes)] || [Metadata bytes 0x00..0x9C (156 bytes)] = 172 bytes total.
+    pub fn canonical_message(&self) -> [u8; 172] {
+        let mut msg = [0u8; 172];
+        msg[0..16].copy_from_slice(&DOMAIN_SEPARATOR);
+        let payload = unsafe {
+            core::slice::from_raw_parts(self as *const Self as *const u8, 156)
+        };
+        msg[16..172].copy_from_slice(payload);
+        msg
+    }
+
+    /// Verifies genuine Ed25519 signature over the canonical message against a 32-byte public key.
+    pub fn verify_ed25519_signature(&self, public_key_bytes: &[u8; 32]) -> Result<(), DeedError> {
+        let pk = ed25519_compact::PublicKey::from_slice(public_key_bytes)
+            .map_err(|_| DeedError::InvalidSignature)?;
+        let sig = ed25519_compact::Signature::from_slice(&self.signature)
+            .map_err(|_| DeedError::InvalidSignature)?;
+        let msg = self.canonical_message();
+        pk.verify(&msg, &sig)
+            .map_err(|_| DeedError::InvalidSignature)?;
+        Ok(())
+    }
+
+    /// Signs the canonical deed payload in-place using an Ed25519 secret key.
+    pub fn sign_with_key(&mut self, secret_key: &ed25519_compact::SecretKey) {
+        let msg = self.canonical_message();
+        let sig = secret_key.sign(&msg, None);
+        self.signature.copy_from_slice(&sig[..]);
     }
 
     /// Computes a deterministic 64-bit integrity digest over the 156-byte deed payload (0x00..0x9C).
