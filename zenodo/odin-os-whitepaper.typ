@@ -27,7 +27,7 @@
   #text(size: 10.5pt, weight: "medium")[Nathan Walker] \
   #text(size: 8.5pt, fill: rgb("444444"))[Ravenhelm Platform & Runestack Research] \
   #text(size: 8.5pt, fill: rgb("444444"))[Email: `nwalker85@gmail.com` | ORCID: `0009-0005-0965-4424`] \
-  #text(size: 8.5pt, fill: rgb("444444"))[Permanent Archive DOI: `10.5281/zenodo.23928302` | Repository: `https://github.com/nwalker85/odinos`] \
+  #text(size: 8.5pt, fill: rgb("444444"))[Concept DOI: `10.5281/zenodo.23928301` | Version 2 DOI: `10.5281/zenodo.24044570`] \
   #text(size: 8.5pt, fill: rgb("666666"))[Publication Release Candidate --- Phase B.3.2 --- November 3, 2026]
   #v(0.3cm)
 ]

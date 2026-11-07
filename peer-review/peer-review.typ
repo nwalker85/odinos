@@ -30,7 +30,7 @@
   #text(size: 10.5pt, weight: "medium")[Nathan Walker] \
   #text(size: 9pt, fill: rgb("444444"))[Ravenhelm Platform & Runestack Research] \
   #text(size: 8.5pt, fill: rgb("444444"))[Email: `nwalker85@gmail.com` | ORCID: `0009-0005-0965-4424`] \
-  #text(size: 8.5pt, fill: rgb("444444"))[Permanent Archive DOI: `10.5281/zenodo.23928302` | PR: `#10` (`clean-zenodo-artifacts-354e271c`)] \
+  #text(size: 8.5pt, fill: rgb("444444"))[Concept DOI: `10.5281/zenodo.23928301` | Version 2 DOI: `10.5281/zenodo.24044570` | PR: `#10`] \
   #text(size: 8.5pt, fill: rgb("666666"))[Canonical Phase B.3.2 Baseline --- November 7, 2026]
   #v(0.4cm)
 ]
@@ -400,5 +400,5 @@ All evidence artifacts are recorded in `peer-review/evidence-manifest.json` with
 
 ---
 #align(center)[
-  #text(size: 8pt, fill: rgb("666666"))[Odin OS Research Project --- Apache-2.0 (Code) / CC BY 4.0 (Docs) --- Permanent Archive: https://doi.org/10.5281/zenodo.23928302]
+  #text(size: 8pt, fill: rgb("666666"))[Odin OS Research Project --- Apache-2.0 (Code) / CC BY 4.0 (Docs) --- Permanent Archive: https://doi.org/10.5281/zenodo.23928301]
 ]

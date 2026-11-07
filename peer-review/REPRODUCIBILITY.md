@@ -12,10 +12,10 @@
 > **Repository Access & Provenance Notice for Reviewers:**  
 > The upstream GitHub repository `nwalker85/odinos` is currently private during pre-publication peer review (returning HTTP `404 Not Found` to unauthenticated tools).
 > 
-> **Archive Lineage:**
-> - The public Zenodo record ([DOI 10.5281/zenodo.23928302](https://doi.org/10.5281/zenodo.23928302)) holds the frozen Phase B.3.2 release candidate baseline (`cec5b2d`, tarball MD5 `9caa2e1433d655fcf8d4aa3c3b2985d1`, 299 KB).
-> - The standalone companion archive provided with this peer-review guide represents the extended assurance package (`PR #10`, 476 KB), incorporating `peer-review/` protocols and Apache-2.0 licensing.
-> Reviewers can execute all reproducibility steps directly from either bundle or request GitHub collaborator access from `nwalker85@gmail.com`.
+> **Archive Lineage on Zenodo ([Concept DOI 10.5281/zenodo.23928301](https://doi.org/10.5281/zenodo.23928301)):**
+> - **Version 1 ([DOI 10.5281/zenodo.23928302](https://doi.org/10.5281/zenodo.23928302)):** Frozen Phase B.3.2 release candidate baseline (`cec5b2d`, tarball MD5 `9caa2e1433d655fcf8d4aa3c3b2985d1`, 299 KB).
+> - **Version 2 ([DOI 10.5281/zenodo.24044570](https://doi.org/10.5281/zenodo.24044570)):** The complete Independent Peer-Review & Assurance Package (`PR #10`, tarball MD5 `0bbcbe69d64d9a8406a15ceda82d6831`, 480 KB), incorporating `peer-review/` protocols and Apache-2.0 licensing.
+> Reviewers can execute all reproducibility steps directly from either release or request GitHub collaborator access from `nwalker85@gmail.com`.
 
 ---
 

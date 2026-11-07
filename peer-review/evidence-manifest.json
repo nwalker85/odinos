@@ -5,7 +5,9 @@
   "git_commit": "eb7e208",
   "pull_request": "10",
   "branch": "clean-zenodo-artifacts-354e271c",
-  "zenodo_doi": "10.5281/zenodo.23928302",
+  "zenodo_concept_doi": "10.5281/zenodo.23928301",
+  "zenodo_version_doi": "10.5281/zenodo.24044570",
+  "zenodo_baseline_doi": "10.5281/zenodo.23928302",
   "target_phase": "B.3.2",
   "verification_timestamp": "2026-11-07T14:35:00Z",
   "host_environment": {
