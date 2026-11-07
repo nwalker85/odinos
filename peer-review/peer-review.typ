@@ -30,8 +30,8 @@
   #text(size: 10.5pt, weight: "medium")[Nathan Walker] \
   #text(size: 9pt, fill: rgb("444444"))[Ravenhelm Platform & Runestack Research] \
   #text(size: 8.5pt, fill: rgb("444444"))[Email: `nwalker85@gmail.com` | ORCID: `0009-0005-0965-4424`] \
-  #text(size: 8.5pt, fill: rgb("444444"))[Permanent Archive DOI: `10.5281/zenodo.23928302` | Repository: `https://github.com/nwalker85/odinos`] \
-  #text(size: 8.5pt, fill: rgb("666666"))[Canonical Phase B.3.2 Baseline --- Revision 68f45c1 --- November 7, 2026]
+  #text(size: 8.5pt, fill: rgb("444444"))[Permanent Archive DOI: `10.5281/zenodo.23928302` | PR: `#10` (`clean-zenodo-artifacts-354e271c`)] \
+  #text(size: 8.5pt, fill: rgb("666666"))[Canonical Phase B.3.2 Baseline --- November 7, 2026]
   #v(0.4cm)
 ]
 
@@ -77,13 +77,13 @@ This guide resolves that challenge by:
 
 = Evidence Status Definitions
 
-In accordance with scientific rigor, every technical claim in Odin OS is assigned an explicit, conservative assurance status:
+In accordance with scientific rigor, every technical claim in Odin OS is assigned an explicit, conservative, and mutually exclusive assurance status:
 
-- *`REPRODUCED`*: Directly executed and verified during clean-room evaluation on this specific commit (`68f45c1`).
+- *`REPRODUCED`*: Directly executed and verified during clean-room evaluation by automated test suites on the current commit baseline (`PR #10`).
 - *`MODEL-CHECKED`*: Formally proved in Z3 SMT (`QF_BV`). Proves mathematical bitvector abstractions, not compiled machine binaries.
-- *`QUALIFIED`*: Valid under explicit, documented operating assumptions (e.g., software emulation under QEMU 11.1.3 `virt`); known hardware differences on physical silicon require additional mitigations.
-- *`PROPOSED`*: Architectural specification for future roadmap phases; not implemented in the current prototype.
-- *`REPORTED`*: Documented in project history without fresh independent re-execution.
+- *`QUALIFIED`*: Valid under software emulation (QEMU 11.1.3 `virt`); known hardware differences on physical silicon (e.g. RISC-V ISA §2.6 misaligned access atomicity) require additional mitigations.
+- *`ASSURANCE BOUNDARY`*: Foundational architectural boundary / negative axiom defining where guarantees stop (e.g. spatial access authorization does not establish semantic business appropriateness). Not an empirical invariant.
+- *`PROPOSED`*: Architectural specification for future roadmap phases; not implemented or claimed in the current prototype.
 - *`CONTRADICTED`*: Evidence conflicts with or refutes the claim.
 
 = System Trust Boundaries & The 4 Assurance Layers
@@ -138,15 +138,15 @@ Odin OS explicitly separates system guarantees across four operational layers. A
 
 An independent reviewer seeking a bounded starting point should prioritize:
 
-#rect(width: 100%, stroke: 1pt + rgb("dc2626"), fill: rgb("fef2f2"), radius: 4pt, inset: 10pt)[
-  #text(weight: "bold", size: 10pt, fill: rgb("991b1b"))[ODIN-C001: Spatial Mutation Isolation Invariant] \
-  #v(0.12cm)
-  #text(size: 9pt)[
-    *Narrow Invariant Statement:* Under the tested QEMU 11.1.3 `virt` configuration (`riscv64gc-unknown-none-elf`), an unprivileged User Mode (U-Mode) task executing arbitrary instructions cannot commit a memory store to any physical address outside the explicitly configured Top-of-Range (TOR) window `[lease_start, lease_end)` without triggering an architectural Store Access Fault (`mcause = 0x07`) that aborts the bus write and leaves the probed memory byte unmodified.
+#rect(width: 100%, stroke: 1pt + rgb("dc2626"), fill: rgb("fef2f2"), radius: 4pt, inset: 9pt)[
+  #text(weight: "bold", size: 9.5pt, fill: rgb("991b1b"))[ODIN-C001: Spatial Mutation Isolation & Byte Preservation Invariant] \
+  #v(0.1cm)
+  #text(size: 8.5pt)[
+    *Narrow Invariant Statement:* Under the tested QEMU 11.1.3 `virt` configuration (`riscv64gc-unknown-none-elf`), an unprivileged User Mode (U-Mode) task cannot successfully modify any physical memory byte outside the explicitly configured Top-of-Range (TOR) window `[lease_start, lease_end)`. Any store instruction attempting to write outside or across this window triggers an architectural Store Access Fault (`mcause = 0x07`), guaranteeing *Unauthorized-Byte Preservation* (zero bits flipped at unauthorized target addresses).
   ]
 ]
 
-#v(0.2cm)
+#v(0.15cm)
 
 == The Six Empirical Review Questions for ODIN-C001
 
@@ -158,24 +158,25 @@ To rigorously falsify ODIN-C001, an independent reviewer should examine these si
    *Finding:* Yes. PMP Entry 4 is programmed with `target_offset` and `target_offset + target_length` mapped to physical DRAM base `0x80020000`.
 3. *Do unauthorized stores fault?*  
    *Finding:* Yes. Empirical tests 3, 4, 5, 6, 7, 9, 10, 16, and 17 all trigger hardware Store Access Faults (`mcause = 0x07`).
-4. *Do bytes remain unmodified after faulting stores?*  
+4. *Do unauthorized bytes remain unmodified after faulting stores?*  
    *Finding:* Yes. Probed memory readbacks confirm target addresses retain original values (`0x00` or original executable code).
 5. *Can User Mode manipulate PMP registers?*  
    *Finding:* No. Unprivileged execution of `csrr`/`csrw pmpcfg0` traps with Illegal Instruction (`mcause = 0x02`).
 6. *Does revocation remove write permissions?*  
    *Finding:* Yes. Calling syscall 13 (`SYS_REVOKE_LEASE`) resets PMP Entry 4 to `OFF`; subsequent writes immediately fault.
 
-#v(0.2cm)
+#v(0.15cm)
 
 == Scientific Boundaries & Non-Claims for ODIN-C001
 
-- *What ODIN-C001 Establishes:*  
-  - An untrusted agent cannot write outside its active deed slice under QEMU emulation.
+- *What ODIN-C001 Establishes (Unauthorized-Byte Preservation):*  
+  - An untrusted agent cannot modify bytes outside its active deed slice under QEMU emulation.
+  - Out-of-bounds bytes are preserved without bit-flips across all tested aligned and boundary stores.
   - Privilege escalation via stack execution or CSR manipulation is prevented by hardware.
-- *What ODIN-C001 Does NOT Establish:*  
-  - It does not prove that the bytes written inside the lease are semantically correct or safe for the application.
-  - It does not prove that physical silicon cores will exhibit atomic split-store behavior across protection perimeters without shadow AST staging buffers (see Limitation 1).
-  - It does not prove protection against microarchitectural cache-timing side channels (Spectre/Meltdown).
+- *What ODIN-C001 Does NOT Establish (Complete Store Atomicity & Business Intent):*  
+  - *Unauthorized-Byte Preservation vs. Complete Store Atomicity:* Complete store atomicity across protection perimeters is qualified by ODIN-C008 and remains an open physical-silicon proof obligation under RISC-V ISA §2.6 (where misaligned accesses may commit lower bytes before trapping).
+  - *Spatial Access vs. Business Semantics:* It does not prove that bytes written inside the lease are contextually appropriate or safe for application logic (governed by Assurance Boundary ODIN-C012).
+  - Microarchitectural cache-timing side channels (Spectre/Meltdown) are outside microkernel scope.
 
 #pagebreak()
 
@@ -191,8 +192,8 @@ The table below catalogs all 14 technical claims across the 4 Assurance Layers:
     stroke: 0.5pt + rgb("cbd5e0"),
     fill: (x, y) => if y == 0 { rgb("edf2f7") } else { none },
     [*ID*], [*Exact Claim*], [*Layer*], [*Status*], [*Implementation & TCB*], [*Supporting Artifact / Test*], [*Protocol*],
-    [`C001`], [Spatial Mutation Isolation], [PEP (B)], [*REPRODUCED*], [PMP Entry 4 (`TOR`); `src/main.rs:252`], [Matrix Tests 1--4, 9, 10; `qemu-adversarial-matrix.txt`], [PROTO-01],
-    [`C002`], [Decoupled PDP Authority], [Auth (A)], [*REPRODUCED*], [Host Python PDP; `tools/pdp_authority_service.py`], [12 unit tests in `authority-isolation-suite.txt`], [PROTO-06],
+    [`C001`], [Spatial Isolation & Byte Pres.], [PEP (B)], [*REPRODUCED*], [PMP Entry 4 (`TOR`); `src/main.rs:252`], [Matrix Tests 1--4, 9, 10; `qemu-adversarial-matrix.txt`], [PROTO-01],
+    [`C002`], [Decoupled PDP Authority], [Auth (A)], [*REPRODUCED*], [Host Python PDP; process model], [12 unit tests in `authority-isolation-suite.txt`], [PROTO-06],
     [`C003`], [Pure \#[no_std] Ed25519], [Auth (A)], [*REPRODUCED*], [`ed25519-compact`; `src/deed.rs:185`], [Matrix Tests 11, 13, 14; 23 host unit tests], [PROTO-06],
     [`C004`], [Anti-Replay Nonce], [Auth (A)], [*MODEL-CHECKED*], [Kernel sequence counter; Z3 `sequence_anti_replay`], [Matrix Test 12; Z3 Theorem 4 & 5 (`smt-proofs.txt`)], [PROTO-07],
     [`C005`], [Bi-directional $W xor X$], [PEP (B)], [*REPRODUCED*], [PMP Entry 1 (`R-X`), Entry 2 (`RW-`); trap handler], [Matrix Tests 7 & 8; Mutations M06 & M15], [PROTO-04],
@@ -202,7 +203,7 @@ The table below catalogs all 14 technical claims across the 4 Assurance Layers:
     [`C009`], [Bounded Arithmetic], [Integ (C)], [*MODEL-CHECKED*], [Rust `checked_add`; Z3 `deed_bounds_verification`], [Z3 Theorem 1 (`unsat`); `prop_deed_overflow`], [PROTO-08],
     [`C010`], [Layer B External Trace], [Integ (C)], [*REPRODUCED*], [Python verifier; `tools/verify_evidence.py`], [10 adversarial tests; `layer-b-evidence-verifier.txt`], [Audit Run],
     [`C011`], [Shadow AST Commit], [Integ (C)], [*PROPOSED*], [Dual-buffer commit barrier specification], [Design doc only (`PHASE_B32_SEMANTIC_INTEGRITY`)], [Phase C],
-    [`C012`], [Spatial != Semantic], [Seman (D)], [*INVARIANT*], [Decoupled PDP/PEP architecture], [Axiomatic: Agent Request != Authority Grant], [PROTO-09],
+    [`C012`], [Spatial != Semantic], [Seman (D)], [*ASSURANCE BOUNDARY*], [Decoupled PDP/PEP architecture], [Axiom: Spatial Access != Intent], [PROTO-09],
     [`C013`], [Prompt Injection Defense], [Seman (D)], [*REPRODUCED*], [Gemma 4 bridge; `tools/gemma_odin_bridge.py`], [Bridge Scenarios 1 & 2 (`gemma-bridge-execution.txt`)], [Bridge Run],
     [`C014`], [Physical Hardware], [PEP (B)], [*PROPOSED*], [Kria KV260 & JH7110 roadmap], [Design doc only (`HARDWARE_JUSTIFICATION_KRIA`)], [Phase C]
   ),
@@ -366,9 +367,10 @@ The following protocols provide explicit recipes for independent researchers att
 = Reviewer Findings & Responsible Disclosure
 
 If you identify an empirical counterexample, an unhandled hardware trap, or an invariant violation:
-1. Copy the template in [`peer-review/REVIEWER_FINDINGS_TEMPLATE.md`](https://github.com/nwalker85/odinos/blob/main/peer-review/REVIEWER_FINDINGS_TEMPLATE.md).
-2. Record the Git commit SHA, toolchain versions, minimal reproducer patch, and register dump (`mepc`, `mcause`, `mtval`, probed address, readback value).
-3. Submit a disclosure report via GitHub Issues: `https://github.com/nwalker85/odinos/issues` or email `nwalker85@gmail.com`.
+1. Copy the reporting template in [`peer-review/REVIEWER_FINDINGS_TEMPLATE.md`](https://github.com/nwalker85/odinos/blob/main/peer-review/REVIEWER_FINDINGS_TEMPLATE.md).
+2. Record Git commit SHA, toolchain versions, reproducer patch, and register dump (`mepc`, `mcause`, `mtval`, probed address, readback value).
+3. Submit a report via GitHub Issues: `https://github.com/nwalker85/odinos/issues` or email `nwalker85@gmail.com`.
+#text(size: 8pt, style: "italic", fill: rgb("475569"))[(Repository is private during review; uninvited tools receive HTTP 404. Reviewers may inspect the self-contained archive via Zenodo DOI 10.5281/zenodo.23928302 or request GitHub collaborator access).]
 
 = Artifact Provenance & Traceability
 
@@ -377,7 +379,7 @@ All evidence artifacts are recorded in `peer-review/evidence-manifest.json` with
 #figure(
   table(
     columns: (1.2cm, 4.3cm, 4.8cm, 2.1cm),
-    inset: (x: 4pt, y: 3.5pt),
+    inset: (x: 3.5pt, y: 2.2pt),
     align: (center, left, left, center),
     stroke: 0.5pt + rgb("cbd5e0"),
     fill: (x, y) => if y == 0 { rgb("edf2f7") } else { none },

@@ -53,21 +53,24 @@ Odin OS explicitly separates security and correctness guarantees into four disti
 ### Layer A: Cryptographic Authorization (PDP)
 * **Core Question:** Does the trusted authority permit this specific agent to access this specific memory span?
 * **Mechanism:** The Policy Decision Point (`pdp_authority_service.py`) evaluates incoming agent requests against declarative security policies. If approved, it signs a 256-byte cache-line aligned `TransitionDeed` using an RFC 8032 Ed25519 root private key.
-* **Assumptions:** 
-  1. The host environment housing the PDP private key is not compromised.
-  2. The root public key pinned in kernel read-only memory matches the PDP signing key.
-  3. The sequence counter allocation is strictly monotonic.
+* **Assumptions & Bounded Threat Model:** 
+  1. The host operating system account running the PDP process is uncompromised (`chmod 600` seed storage).
+  2. Guarantees are bounded by the host OS process/memory model. They do not assert resistance against root-level host OS compromise, kernel-level memory dumping, physical DRAM bus interception, or microarchitectural side-channels.
+  3. The root public key pinned in kernel read-only memory matches the PDP signing key.
+  4. The sequence counter allocation is strictly monotonic.
 * **Non-Guarantees:** The PDP does not control the physical bus or execution pipeline. If an agent gains write permissions, the PDP cannot prevent out-of-order execution or hardware bus faults.
 
 ### Layer B: Hardware Enforcement (PEP)
 * **Core Question:** Does processor hardware physically restrict U-Mode execution to the granted spatial and temporal capability window?
 * **Mechanism:** RISC-V Physical Memory Protection (PMP) CSRs (`pmpcfg0`, `pmpaddr0`..`pmpaddr7`) configured by the M-Mode microkernel into Top-of-Range (TOR) matching regions.
 * **Guarantees:**
-  * Spatial confinement: Any store instruction attempting to retire outside `[lease_start, lease_end)` triggers an architectural Store Access Fault (`mcause = 7`).
+  * **Unauthorized-Byte Preservation (Demonstrated Invariant):** Any store instruction attempting to retire outside `[lease_start, lease_end)` triggers an architectural Store Access Fault (`mcause = 7`), preventing bus write-enable and ensuring all unauthorized bytes remain unmodified.
   * Privilege confinement: User task code is `R-X` (store faults); user stack is `RW-` (fetch faults with `mcause = 1`).
   * Register isolation: U-Mode attempts to read or write PMP CSRs trigger Illegal Instruction (`mcause = 2`).
   * Temporal revocation: Syscall 13 (`SYS_REVOKE_LEASE`) collapses PMP Entry 4 to `OFF`, revoking access immediately.
 * **Assumptions:** The CPU hardware PMP comparators conform strictly to the RISC-V Privileged Architecture Specification.
+* **Crucial Qualification: Unauthorized-Byte Preservation vs. Complete Store Atomicity:**
+  * While unauthorized bytes outside the lease window are guaranteed unmodified under all tested vectors, complete store atomicity across protection perimeters (e.g. unaligned 4-byte stores straddling in-bounds and out-of-bounds memory) is an unresolved physical-silicon proof obligation under RISC-V Unprivileged ISA §2.6. QEMU evaluates such split stores atomically; physical hardware cores may require Phase C Shadow AST staging buffers (`ODIN-C011`) for guaranteed transactional atomicity.
 * **Non-Guarantees:** Hardware PMP only controls *where* and *when* writes occur. It does not inspect the payload content, evaluate whether the bytes represent valid AST code, or prevent logic errors within the permitted span.
 
 ### Layer C: Transactional & Content Integrity

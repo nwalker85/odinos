@@ -3,8 +3,15 @@
 **Document Identifier:** ODIN-DOC-REP-001  
 **Classification:** Independent Peer-Review & Assurance Package  
 **Target Release:** Phase B.3.2 Canonical Baseline  
-**Git Baseline Commit:** `68f45c1cd45e4df29bb6139661ab4894713709ed`  
+**Pull Request:** [PR #10](https://github.com/nwalker85/odinos/pull/10) (`clean-zenodo-artifacts-354e271c`)  
+**Permanent Archive DOI:** [`10.5281/zenodo.23928302`](https://doi.org/10.5281/zenodo.23928302)  
 **Revision:** 2026-11-07  
+
+---
+
+> **Repository Access Notice for Reviewers:**  
+> The upstream GitHub repository `nwalker85/odinos` is currently private during pre-publication peer review. Queries to `github.com/nwalker85/odinos` without collaborator authentication will return HTTP `404 Not Found`.
+> Reviewers can reproduce all results directly from the standalone archive `odin-os-v0.1.0-src.tar.gz` hosted on Zenodo ([DOI 10.5281/zenodo.23928302](https://doi.org/10.5281/zenodo.23928302)) without needing GitHub access, or request collaborator privileges from `nwalker85@gmail.com`.
 
 ---
 

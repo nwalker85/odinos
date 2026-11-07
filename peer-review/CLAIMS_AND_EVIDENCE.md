@@ -9,12 +9,13 @@
 
 ## 1. Assurance Status Definitions
 
-In accordance with rigorous peer-review standards, every technical claim in Odin OS is assigned an explicit, conservative assurance status:
+In accordance with rigorous peer-review standards, every technical claim in Odin OS is assigned an explicit, conservative, and mutually exclusive assurance status:
 
-* **`REPRODUCED`**: Directly executed and independently validated during the clean-room verification pipeline on this specific commit (`68f45c1`).
+* **`REPRODUCED`**: Directly executed and independently validated during clean-room automated test suites on the current commit baseline (`clean-zenodo-artifacts-354e271c`, PR #10).
 * **`MODEL-CHECKED`**: Verified via formal mathematical models (Z3 SMT QF_BV). Proves properties of the abstract specification, not compiled machine code.
-* **`QUALIFIED`**: Verified under explicit, documented operating assumptions (e.g. software emulation under QEMU 11.1.3 virt); known silicon differences require additional mitigations.
-* **`PROPOSED`**: Architectural design specified in documentation for future development; not implemented in the current prototype.
+* **`QUALIFIED`**: Verified under software emulation (QEMU 11.1.3 virt); known silicon differences (e.g. RISC-V Unprivileged ISA §2.6 misaligned access atomicity) require additional mitigations on physical hardware.
+* **`ASSURANCE BOUNDARY`**: Foundational architectural boundary / negative axiom defining the limits of the security guarantee (e.g., spatial access authorization does not establish semantic business appropriateness). Not an empirical or machine-checked invariant.
+* **`PROPOSED`**: Architectural design specified in documentation for future development phases; not implemented or claimed in the Phase B.3.2 prototype.
 * **`CONTRADICTED`**: Available evidence conflicts with or invalidates the claim.
 
 ---
@@ -24,36 +25,39 @@ In accordance with rigorous peer-review standards, every technical claim in Odin
 ```
 Summary of Registered Claims:
 ├── Layer A: Cryptographic Authorization
-│   ├── ODIN-C002 [REPRODUCED]    Decoupled PDP Authority Isolation
-│   ├── ODIN-C003 [REPRODUCED]    Pure #![no_std] Ed25519 Signature Verification
-│   └── ODIN-C004 [MODEL-CHECKED] Anti-Replay Monotonic Sequence Nonce
+│   ├── ODIN-C002 [REPRODUCED]          Decoupled PDP Authority Isolation (Process Boundary)
+│   ├── ODIN-C003 [REPRODUCED]          Pure #![no_std] Ed25519 Signature Verification
+│   └── ODIN-C004 [MODEL-CHECKED]       Anti-Replay Monotonic Sequence Nonce
 ├── Layer B: Hardware Enforcement
-│   ├── ODIN-C001 [REPRODUCED]    PRIORITY: Spatial Mutation Isolation via PMP
-│   ├── ODIN-C005 [REPRODUCED]    Bi-Directional W^X Privilege Separation
-│   ├── ODIN-C006 [REPRODUCED]    Dynamic Temporal Capability Lease Revocation
-│   ├── ODIN-C007 [REPRODUCED]    Privileged CSR & MMIO Perimeter Isolation
-│   ├── ODIN-C008 [QUALIFIED]     Multi-Byte Protection Boundary Crossing
-│   └── ODIN-C014 [PROPOSED]      Physical Silicon & Autonomous Timer Migration
+│   ├── ODIN-C001 [REPRODUCED]          PRIORITY: Spatial Mutation Isolation & Byte Preservation
+│   ├── ODIN-C005 [REPRODUCED]          Bi-Directional W^X Privilege Separation
+│   ├── ODIN-C006 [REPRODUCED]          Dynamic Temporal Capability Lease Revocation
+│   ├── ODIN-C007 [REPRODUCED]          Privileged CSR & MMIO Perimeter Isolation
+│   ├── ODIN-C008 [QUALIFIED]           Multi-Byte Protection Boundary Crossing (Test 10)
+│   └── ODIN-C014 [PROPOSED]            Physical Silicon & Autonomous Timer Migration
 ├── Layer C: Transactional & Content Integrity
-│   ├── ODIN-C009 [MODEL-CHECKED] Bounded Integer Offset Arithmetic Immunity
-│   ├── ODIN-C010 [REPRODUCED]    Independent Layer B Host Trace & Receipt Audit
-│   └── ODIN-C011 [PROPOSED]      Shadow AST Staging & In-Kernel SHA-256 Digest Commit
+│   ├── ODIN-C009 [MODEL-CHECKED]       Bounded Integer Offset Arithmetic Immunity
+│   ├── ODIN-C010 [REPRODUCED]          Independent Layer B Host Trace & Receipt Audit
+│   └── ODIN-C011 [PROPOSED]            Shadow AST Staging & In-Kernel SHA-256 Digest Commit
 └── Layer D: Semantic & Business Appropriateness
-    ├── ODIN-C012 [INVARIANT]     Decoupling of Spatial Access from Business Intent
-    └── ODIN-C013 [REPRODUCED]    Two-Layer Prompt Injection Deflection with Gemma 4
+    ├── ODIN-C012 [ASSURANCE BOUNDARY]  Decoupling of Hardware Capability from Business Appropriateness
+    └── ODIN-C013 [REPRODUCED]          Two-Layer Prompt Injection Deflection with Gemma 4
 ```
 
 ---
 
-### ODIN-C001 — Spatial Mutation Isolation (PRIORITY TARGET)
+### ODIN-C001 — Spatial Mutation Isolation & Unauthorized-Byte Preservation (PRIORITY TARGET)
 
-* **Exact Statement:** Under QEMU virt (rv64), an untrusted U-Mode task executing arbitrary RISC-V instructions cannot retire a store instruction to any physical memory address outside the explicitly configured `[lease_start, lease_end)` window without triggering an architectural Store Access Fault (`mcause = 0x07`), aborting the write and leaving the target memory byte unmodified.
+* **Exact Statement:** Under QEMU virt (rv64), an unprivileged User Mode (U-Mode) task executing arbitrary RISC-V instructions cannot successfully modify any physical memory byte outside the explicitly configured `[lease_start, lease_end)` window. Any store instruction whose access range falls outside or crosses beyond this window triggers an architectural Store Access Fault (`mcause = 0x07`), guaranteeing **Unauthorized-Byte Preservation** (zero bits flipped at out-of-bounds physical addresses).
 * **Assurance Category:** Layer B (Hardware Enforcement)
 * **Scope & Environment:** QEMU 11.1.3 `virt` (64-bit RISC-V `riscv64gc-unknown-none-elf`).
 * **Trusted Components (TCB):** CPU PMP comparators, M-Mode microkernel trap handler, memory domain layout (`linker.ld`).
 * **Explicit Assumptions:** 
   1. QEMU softmmu PMP checks match RISC-V Privileged ISA v1.12.
   2. PMP Top-of-Range (TOR) comparators are programmed without overlapping higher-priority entries.
+* **Core Distinction: Unauthorized-Byte Preservation vs. Complete Store Atomicity:**
+  * *Unauthorized-Byte Preservation (Demonstrated Invariant):* Hardware PMP comparators deny write-enable signals to unauthorized memory addresses. In all tested cases (Tests 3, 4, 9, and cross-boundary Test 10), out-of-bounds target bytes are preserved completely unmodified (`0x00`).
+  * *Complete Store Atomicity across Protection Boundaries (Qualified Limitation):* For multi-byte stores straddling an authorized/unauthorized boundary (e.g. 4-byte store at `0x8002005E`), QEMU evaluates the access atomically and modifies no bytes (Test 10). However, base RISC-V Unprivileged ISA §2.6 permits non-atomic execution of misaligned accesses on physical silicon, where in-bounds lower bytes could commit before a fault is raised on the out-of-bounds portion. Therefore, complete store atomicity across boundaries is qualified by `ODIN-C008` and remains an open physical-silicon proof obligation (to be resolved architecturally via Phase C Shadow AST staging buffers, `ODIN-C011`).
 * **Source Implementation:**
   * PMP Setup: [`src/main.rs:226..260`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs#L226-L260) (`setup_pmp`)
   * Trap Handler: [`src/main.rs:857..1054`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs#L857-L1054) (`handle_trap`)
@@ -70,12 +74,12 @@ Summary of Registered Claims:
 * **Reproduction Command:** `cargo run --release`
 * **Expected vs Actual Observations:**
   * Expected: All out-of-bounds stores trap with `mcause = 7`, `hardware_fault = true`, `memory_unmodified = true`.
-  * Observed: Confirmed across Tests 3, 4, and 9. Zero bits flipped at probed target addresses.
+  * Observed: Confirmed across Tests 3, 4, 9, and 10. Zero bits flipped at probed unauthorized target addresses.
 * **Known Counterexamples / Edge Cases:**
   * Unaligned multi-byte stores straddling the lease boundary (evaluated in `ODIN-C008`).
 * **Exclusions & Non-Goals:**
   * Does not defend against microarchitectural cache-timing side channels (Spectre/Meltdown).
-  * Does not generalize atomicity guarantees to physical silicon without shadow AST staging buffers.
+  * Does not generalize store atomicity to physical silicon without shadow AST staging buffers.
 * **Assurance Status:** **`REPRODUCED`**
 * **Falsification Procedure:** Refer to Protocol `PROTO-01` in [`FALSIFICATION_PROTOCOLS.md`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/FALSIFICATION_PROTOCOLS.md).
 
@@ -83,11 +87,13 @@ Summary of Registered Claims:
 
 ### ODIN-C002 — Decoupled Policy Decision Point (PDP) Authority Isolation
 
-* **Exact Statement:** Private cryptographic signing keys are completely isolated from U-Mode agent tasks and transport bridges; capability minting requires independent evaluation against declarative security policies across 12 distinct attack vectors.
+* **Exact Statement:** Private cryptographic signing keys are isolated from U-Mode agent tasks and transport bridges within the host operating system process boundary model; capability minting requires independent evaluation against declarative security policies across 12 concrete adversarial attack vectors.
 * **Assurance Category:** Layer A (Cryptographic Authorization)
 * **Scope & Environment:** Host Python Environment (`tools/pdp_authority_service.py`).
 * **Trusted Components (TCB):** Host Python interpreter, OS process isolation, root seed storage.
-* **Explicit Assumptions:** Host operating system account running the PDP is not compromised.
+* **Explicit Assumptions & Threat Model Scoping:** 
+  1. The host operating system account running the PDP is not compromised.
+  2. Guarantees are bounded by the host OS process and memory isolation model (`chmod 600`). This does not claim universal immunity against root-level OS compromise, physical DRAM bus probing, or hardware side-channels.
 * **Source Implementation:**
   * PDP Service: [`tools/pdp_authority_service.py`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/tools/pdp_authority_service.py)
   * Compile Key Injector: [`build.rs`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/build.rs)
@@ -207,12 +213,14 @@ Summary of Registered Claims:
 
 ---
 
-### ODIN-C012 — Decoupling of Hardware Capability from Business Semantic Appropriateness
+### ODIN-C012 — Assurance Boundary: Decoupling of Hardware Capability from Business Semantic Appropriateness
 
-* **Exact Statement:** Processor Physical Memory Protection (PMP) enforces spatial access bounds, but cannot judge whether an authorized mutation is contextually appropriate under business logic or application rules.
+* **Exact Statement:** Processor Physical Memory Protection (PMP) enforces spatial capability access bounds, but cannot judge whether an authorized mutation is contextually appropriate under business logic, application rules, or agent intent.
 * **Assurance Category:** Layer D (Semantic Appropriateness)
-* **Assurance Status:** **`ARCHITECTURAL INVARIANT`** (Foundational Design Axiom).
-* **Implication:** Even with 100% hardware PMP enforcement, an agent can commit undesirable state if authorized by an errant or misconfigured PDP.
+* **Assurance Status:** **`ASSURANCE BOUNDARY`** (Foundational Architectural Axiom).
+* **Scope & Methodological Distinction:** This is not an empirical invariant verified by a passing test suite, but a negative assurance boundary statement defining what hardware enforcement cannot achieve:
+  $$\text{Hardware Spatial Authorization} \not\Rightarrow \text{Semantic Business Correctness}$$
+* **Implication & Falsification:** Even with 100% bug-free hardware PMP enforcement, an agent can commit catastrophic or undesirable application state if authorized by an errant, misconfigured, or tricked PDP. Demonstrating that an in-bounds write can corrupt application data (e.g. Protocol `PROTO-09`) validates this assurance boundary.
 
 ---
 
@@ -232,3 +240,18 @@ Summary of Registered Claims:
 * **Exact Statement:** Physical silicon deployment on AMD Kria KV260 and StarFive JH7110 with hardware timer-interrupt lease revocation (`mcycle`/`mtimecmp`) and non-volatile sequence storage.
 * **Assurance Category:** Layer B (Hardware Enforcement)
 * **Assurance Status:** **`PROPOSED`** (Phase C Roadmap).
+
+---
+
+## 3. Revision, Repository Visibility & Access Traceability
+
+* **Canonical Git Repository:** `https://github.com/nwalker85/odinos`
+* **Active Working Branch:** `clean-zenodo-artifacts-354e271c`
+* **Pull Request:** [GitHub PR #10](https://github.com/nwalker85/odinos/pull/10)
+* **Permanent Archival DOI:** [`10.5281/zenodo.23928302`](https://doi.org/10.5281/zenodo.23928302)
+* **Repository Visibility Notice for External Reviewers:**
+  > The upstream GitHub repository `nwalker85/odinos` is currently maintained in **Private** visibility mode during pre-publication peer review. Consequently, unauthenticated external queries or automated integrations lacking repository collaborator permissions will receive an HTTP `404 Not Found` response from the GitHub API and web interface.
+  >
+  > Independent reviewers have two complete access paths:
+  > 1. **Self-Contained Zenodo Archive:** The immutable, bit-identical source archive (`odin-os-v0.1.0-src.tar.gz`), cryptographic evidence manifests, raw UART receipts, and the 8-page companion guide (`peer-review.pdf`) are publicly accessible via Zenodo DOI `10.5281/zenodo.23928302`.
+  > 2. **Interactive Git Collaborator Access:** To inspect git commit history, branch lineage, or open PR discussions directly on GitHub, reviewers may request read collaborator access from the author (`nwalker85@gmail.com`), or consult the public release tag upon final un-gating.

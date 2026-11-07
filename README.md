@@ -41,22 +41,26 @@ When evaluating Odin OS, it is essential to distinguish between **access enforce
                                                                   (Memory Unmodified, WE = 0)
 ```
 
-### 2. Primary Falsifiable Claim
+### 2. Primary Falsifiable Claim (ODIN-C001)
 For peer reviewers seeking an exact, bounded claim to falsify:
-> **Primary Claim:** Under an untrusted U-Mode agent executing arbitrary instructions, no memory store instruction can retire to any physical memory location outside the explicitly signed `[lease_start, lease_end)` window or after revocation without triggering a processor-level Store Access Fault (`mcause = 0x07`) that aborts the write and preserves memory unmodified.
+> **Primary Invariant (Unauthorized-Byte Preservation):** Under the tested QEMU 11.1.3 `virt` configuration, an untrusted U-Mode agent executing arbitrary instructions cannot successfully modify any physical memory byte outside the explicitly signed `[lease_start, lease_end)` window. Any store instruction falling outside or straddling beyond this window triggers an architectural Store Access Fault (`mcause = 0x07`), guaranteeing that unauthorized target bytes remain strictly unmodified (`0x00`).
+>
+> *(Boundary Qualification: Complete store atomicity across protection perimeters is qualified by ODIN-C008 and remains an open physical-silicon proof obligation under RISC-V ISA §2.6; see [Limitations](peer-review/KNOWN_LIMITATIONS.md)).*
 
 ---
 
 ## Claim-to-Evidence Matrix
 
-| Claim ID | Property | TCB & Assumptions | Supporting Artifact / Test | Explicitly Outside Scope |
-| :---: | :--- | :--- | :--- | :--- |
-| **C1** | **Spatial Isolation** | RISC-V PMP comparators, M-Mode trap handler | Adversarial Tests 1–4, 9, 10; Z3 Proof 1 (`deed_bounds_verification.smt2`) | Timing side-channels; non-atomic split stores on unverified physical silicon. |
-| **C2** | **Temporal Revocation** | M-Mode microkernel syscall 13 (`SYS_REVOKE_LEASE`) | Adversarial Test 16; Mutation M09 | Autonomous hardware timer-interrupt preemption (`mcycle`). |
-| **C3** | **Cryptographic Authority** | `ed25519-compact` (`no_std`), pinned 32B root key | Adversarial Tests 11, 13, 14; Mutations M01, M02, M11–M13 | Compromise of the PDP signing key outside the microkernel. |
-| **C4** | **Anti-Replay Monotonicity** | In-kernel sequence counter `last_seq` | Adversarial Test 12; Mutation M03; Z3 Proof 2 (`sequence_anti_replay.smt2`) | NVRAM counter rollback across hard power loss without re-keying. |
-| **C5** | **Bi-directional $W \oplus X$** | PMP Entry 1 (`R-X`), Entry 2 (`RW-`); trap handler | Adversarial Tests 7 & 8; Mutations M06, M15 | Return-Oriented Programming (ROP) in valid user text. |
-| **C6** | **Semantic Appropriateness** | External Policy Decision Point (PDP) | PDP Suite (12 attack vectors rejected) | **Outside Odin OS PEP Scope**. Microkernel enforces spatial capability, not business logic. |
+| Claim ID | Property | Assurance Status | TCB & Assumptions | Supporting Artifact / Test | Explicitly Outside Scope |
+| :---: | :--- | :---: | :--- | :--- | :--- |
+| **C1** | **Spatial Isolation & Byte Preservation** | `REPRODUCED` | RISC-V PMP comparators, M-Mode trap handler | Adversarial Tests 1–4, 9, 10; Z3 Proof 1 (`deed_bounds_verification.smt2`) | Timing side-channels; non-atomic split stores on physical silicon (ISA §2.6). |
+| **C2** | **Temporal Revocation** | `REPRODUCED` | M-Mode microkernel syscall 13 (`SYS_REVOKE_LEASE`) | Adversarial Test 16; Mutation M09 | Autonomous hardware timer-interrupt preemption (`mcycle`). |
+| **C3** | **Cryptographic Authority** | `REPRODUCED` | `ed25519-compact` (`no_std`), pinned 32B root key | Adversarial Tests 11, 13, 14; Mutations M01, M02, M11–M13 | Compromise of the PDP signing key outside the microkernel. |
+| **C4** | **Anti-Replay Monotonicity** | `MODEL-CHECKED` | In-kernel sequence counter `last_seq` | Adversarial Test 12; Mutation M03; Z3 Proof 2 (`sequence_anti_replay.smt2`) | NVRAM counter rollback across hard power loss without re-keying. |
+| **C5** | **Bi-directional $W \oplus X$** | `REPRODUCED` | PMP Entry 1 (`R-X`), Entry 2 (`RW-`); trap handler | Adversarial Tests 7 & 8; Mutations M06, M15 | Return-Oriented Programming (ROP) in valid user text. |
+| **C6** | **Semantic Appropriateness** | `ASSURANCE BOUNDARY` | External Policy Decision Point (PDP) | PDP Suite (12 attack vectors rejected) | **Outside Odin OS PEP Scope**. Microkernel enforces spatial capability, not business logic. |
+
+> **Repository Visibility Notice:** During pre-publication peer review, the upstream GitHub repository is maintained in private visibility mode (external tools and uninvited users will receive HTTP `404 Not Found`). Reviewers can verify the bit-identical release via the public Zenodo archive ([DOI 10.5281/zenodo.23928302](https://doi.org/10.5281/zenodo.23928302)) or request collaborator access from `nwalker85@gmail.com`.
 
 ---
 

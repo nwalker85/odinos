@@ -27,10 +27,10 @@ Every protocol below provides:
 
 ## 2. Priority Protocols
 
-### PROTO-01: Spatial Boundary Breach (ODIN-C001)
+### PROTO-01: Spatial Boundary Breach & Unauthorized-Byte Preservation (ODIN-C001)
 
-* **Objective:** Falsify the claim that an unprivileged U-Mode task cannot commit a store instruction to memory outside its granted TransitionDeed lease.
-* **Target Invariant:** If `target_address < lease_start` or `target_address >= lease_end`, CPU must raise Store Access Fault (`mcause = 7`), leaving memory byte unchanged.
+* **Objective:** Falsify the claim that an unprivileged U-Mode task cannot commit a store instruction to memory outside its granted TransitionDeed lease, or that out-of-bounds bytes can be corrupted.
+* **Target Invariant:** If `target_address < lease_start` or `target_address >= lease_end`, CPU must raise Store Access Fault (`mcause = 7`), guaranteeing **Unauthorized-Byte Preservation** (zero bits flipped at out-of-bounds physical addresses).
 * **Setup:** Standard QEMU 11.1.3 `virt` environment.
 * **Procedure:**
   1. Open [`src/main.rs`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs).
@@ -41,10 +41,10 @@ Every protocol below provides:
   3. Compile and run: `cargo run --release`.
 * **Expected Behavior:** QEMU triggers an architectural trap (`mcause = 7`), invokes `handle_trap`, records `TRAP_OCCURRED = true`, advances `mepc`, and reads back the original byte (`0x00`).
 * **Falsification Condition:**
-  * **Falsified if:** The target address reads back `0xAA`, `0xBB`, or `0xCC`, OR
+  * **Falsified if:** The target address reads back `0xAA`, `0xBB`, or `0xCC` (unauthorized byte corrupted), OR
   * **Falsified if:** Execution terminates without triggering `mcause = 7`.
 * **Evidence Collection:** Capture `mepc`, `mtval`, readback value at target address, and UART JSON receipt.
-* **Limitation:** Passing this test under QEMU virt demonstrates compliance with QEMU's softmmu PMP model; it does not prove physical silicon bus timing behavior.
+* **Methodological Limitation (Preservation vs. Atomicity):** Passing this test establishes Unauthorized-Byte Preservation under QEMU softmmu. As documented in ODIN-C008, complete store atomicity across boundaries on physical silicon cores remains an open proof obligation under RISC-V ISA §2.6, requiring Phase C Shadow AST staging buffers.
 
 ---
 
@@ -167,7 +167,7 @@ Every protocol below provides:
 
 ---
 
-### PROTO-09: Semantic In-Bounds Tampering (ODIN-C012)
+### PROTO-09: Semantic In-Bounds Tampering (ODIN-C012 Assurance Boundary)
 
 * **Objective:** Demonstrate the fundamental boundary between hardware PEP enforcement and business semantic correctness.
 * **Target Invariant:** Hardware PMP allows memory writes within authorized byte spans regardless of whether the modified data makes business sense.
@@ -178,3 +178,45 @@ Every protocol below provides:
   3. Read back the memory.
 * **Expected Behavior:** The write succeeds without a hardware fault (`mcause = 0x00`).
 * **Scientific Significance:** This confirms that **Odin OS is a spatial/temporal capability monitor, not an application-level business validator.** Hardware PMP cannot and does not guarantee that the mutated bytes represent sound business logic.
+
+---
+
+### PROTO-10: Unauthorized UART0 MMIO Access (ODIN-C007)
+
+* **Objective:** Falsify the claim that untrusted U-Mode code cannot hijack terminal console output or peripheral registers via MMIO.
+* **Target Invariant:** Any unprivileged store to UART0 MMIO space (`0x10000000`) must be blocked by PMP Entry 0 (`---`), triggering a Store Access Fault (`mcause = 7`).
+* **Setup:** Standard QEMU test harness.
+* **Procedure:**
+  1. In U-Mode, attempt direct store: `sb 0x58, 0(0x10000000)` (UART0 transmitter holding register).
+  2. Inspect the terminal console log.
+* **Expected Behavior:** Processor triggers Store Access Fault (`mcause = 7`); console emits no rogue characters.
+* **Falsification Condition:**
+  * **Falsified if:** Character `X` (`0x58`) is output to terminal without fault.
+
+---
+
+### PROTO-11: Compromised Transport Channel Injection (ODIN-C002)
+
+* **Objective:** Falsify the claim that untrusted transport channels cannot forge capability grants without root signing keys.
+* **Target Invariant:** Out-of-bounds mutation requests submitted to the PDP bridge must be denied without minting valid TransitionDeeds.
+* **Setup:** Host Python PDP and Neural Bridge (`tools/gemma_odin_bridge.py`).
+* **Procedure:**
+  1. Inject an out-of-bounds mutation token directly into the Python bridge targeting kernel RAM `0x80030000`.
+  2. Observe PDP policy evaluation and microkernel behavior.
+* **Expected Behavior:** PDP policy rejects deed issuance (Layer 1 denial); if injected directly into U-Mode, microkernel PMP comparators trap with `mcause = 7` (Layer 2 defense).
+* **Falsification Condition:**
+  * **Falsified if:** The bridge mints a valid root signature for unauthorized spans, or causes kernel to commit write.
+
+---
+
+### PROTO-12: Sequence Nonce Reset on Cold Reboot (ODIN-C004 Boundary)
+
+* **Objective:** Demonstrate the persistence boundary limitation of the in-memory sequence counter.
+* **Target Invariant:** Sequence counter is maintained in volatile RAM and resets to 0 upon CPU reset.
+* **Setup:** Standard QEMU execution.
+* **Procedure:**
+  1. Consume deed with sequence number `100`.
+  2. Execute hypervisor reset (`qemu-system-riscv64` cold reboot).
+  3. Resubmit deed with sequence number `100`.
+* **Expected Behavior:** Sequence is accepted after reboot because RAM counter was reset to `0`.
+* **Scientific Significance:** Confirms documented Limitation 4 in `KNOWN_LIMITATIONS.md`. Demonstrates why physical hardware deployment requires secure non-volatile NVRAM for the anti-replay counter.
