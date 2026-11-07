@@ -9,9 +9,13 @@
 
 ---
 
-> **Repository Access Notice for Reviewers:**  
-> The upstream GitHub repository `nwalker85/odinos` is currently private during pre-publication peer review. Queries to `github.com/nwalker85/odinos` without collaborator authentication will return HTTP `404 Not Found`.
-> Reviewers can reproduce all results directly from the standalone archive `odin-os-v0.1.0-src.tar.gz` hosted on Zenodo ([DOI 10.5281/zenodo.23928302](https://doi.org/10.5281/zenodo.23928302)) without needing GitHub access, or request collaborator privileges from `nwalker85@gmail.com`.
+> **Repository Access & Provenance Notice for Reviewers:**  
+> The upstream GitHub repository `nwalker85/odinos` is currently private during pre-publication peer review (returning HTTP `404 Not Found` to unauthenticated tools).
+> 
+> **Archive Lineage:**
+> - The public Zenodo record ([DOI 10.5281/zenodo.23928302](https://doi.org/10.5281/zenodo.23928302)) holds the frozen Phase B.3.2 release candidate baseline (`cec5b2d`, tarball MD5 `9caa2e1433d655fcf8d4aa3c3b2985d1`, 299 KB).
+> - The standalone companion archive provided with this peer-review guide represents the extended assurance package (`PR #10`, 476 KB), incorporating `peer-review/` protocols and Apache-2.0 licensing.
+> Reviewers can execute all reproducibility steps directly from either bundle or request GitHub collaborator access from `nwalker85@gmail.com`.
 
 ---
 

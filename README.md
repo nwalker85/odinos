@@ -5,7 +5,7 @@
 [![Target](https://img.shields.io/badge/Target-riscv64gc--unknown--none--elf-informational.svg)](https://github.com/nwalker85/odinos)
 [![Formal Proofs](https://img.shields.io/badge/Z3%20SMT-5.3.1%20Verified%20(unsat)-success.svg)](formal/)
 [![Mutation Testing](https://img.shields.io/badge/Mutants-15%2F15%20Killed-success.svg)](PHASE_B3_MUTATION_REPORT.md)
-[![License](https://img.shields.io/badge/License-MIT%20%2F%20CC--BY--4.0-brightgreen.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache--2.0%20%2F%20CC--BY--4.0-brightgreen.svg)](LICENSE)
 
 **Odin OS** is a bare-metal, zero-allocation (`#![no_std]`) 64-bit RISC-V microkernel that anchors autonomous AI agent capability boundaries in processor Physical Memory Protection (PMP) comparators. 
 
@@ -60,7 +60,9 @@ For peer reviewers seeking an exact, bounded claim to falsify:
 | **C5** | **Bi-directional $W \oplus X$** | `REPRODUCED` | PMP Entry 1 (`R-X`), Entry 2 (`RW-`); trap handler | Adversarial Tests 7 & 8; Mutations M06, M15 | Return-Oriented Programming (ROP) in valid user text. |
 | **C6** | **Semantic Appropriateness** | `ASSURANCE BOUNDARY` | External Policy Decision Point (PDP) | PDP Suite (12 attack vectors rejected) | **Outside Odin OS PEP Scope**. Microkernel enforces spatial capability, not business logic. |
 
-> **Repository Visibility Notice:** During pre-publication peer review, the upstream GitHub repository is maintained in private visibility mode (external tools and uninvited users will receive HTTP `404 Not Found`). Reviewers can verify the bit-identical release via the public Zenodo archive ([DOI 10.5281/zenodo.23928302](https://doi.org/10.5281/zenodo.23928302)) or request collaborator access from `nwalker85@gmail.com`.
+> **Repository Visibility & Zenodo Archive Provenance:**  
+> The upstream GitHub repository is currently private during pre-publication peer review (yielding HTTP `404 Not Found` to unauthenticated tools).  
+> The public Zenodo record ([DOI 10.5281/zenodo.23928302](https://doi.org/10.5281/zenodo.23928302)) preserves the immutable Phase B.3.2 release candidate baseline (`cec5b2d`, tarball MD5 `9caa2e1433d655fcf8d4aa3c3b2985d1`, 299 KB). The extended Peer-Review & Assurance Package (commits `68f45c1..93ab521`, containing the `peer-review/` guide, GSN tree, and 12 falsification protocols) is tracked in PR #10 and packaged as a standalone verification bundle. Reviewers may request GitHub collaborator access from `nwalker85@gmail.com`.
 
 ---
 
@@ -139,7 +141,10 @@ make verify-release
 
 ---
 
-## License
+## Licensing & Intellectual Property Architecture
 
-* **Microkernel Source & Verification Tools:** [MIT License](LICENSE)
-* **Whitepaper & Documentation:** [Creative Commons Attribution 4.0 International (CC-BY-4.0)](https://creativecommons.org/licenses/by/4.0/)
+Odin OS employs a multi-tiered open licensing architecture:
+
+* **Microkernel, Tools & Verification Models:** [Apache License 2.0](LICENSE) (permits commercial use, modification, and distribution with explicit contributor patent grant and patent-termination protections; see [`NOTICE`](NOTICE)).
+* **Research Whitepaper & Peer-Review Guide:** [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/) (allows redistribution and adaptation with scholarly attribution).
+* **Experimental Evidence Receipts & Manifests:** [Creative Commons CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) (dedicated to the public domain for unrestricted verification and benchmarking).

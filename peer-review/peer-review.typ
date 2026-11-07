@@ -400,5 +400,5 @@ All evidence artifacts are recorded in `peer-review/evidence-manifest.json` with
 
 ---
 #align(center)[
-  #text(size: 8pt, fill: rgb("666666"))[Odin OS Research Project --- Ravenhelm Platform & Runestack Research --- Permanent Archive: https://doi.org/10.5281/zenodo.23928302]
+  #text(size: 8pt, fill: rgb("666666"))[Odin OS Research Project --- Apache-2.0 (Code) / CC BY 4.0 (Docs) --- Permanent Archive: https://doi.org/10.5281/zenodo.23928302]
 ]

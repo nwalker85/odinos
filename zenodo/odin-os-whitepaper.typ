@@ -315,5 +315,6 @@ The complete Odin OS codebase, linker scripts, formal SMT specifications, and La
 - *Zenodo Deposit*: `https://zenodo.org/records/23928302`
 - *Source Repository*: `https://github.com/nwalker85/odinos`
 - *Target Triple*: `riscv64gc-unknown-none-elf`
+- *Licensing*: Apache-2.0 (Microkernel & Verification Tools); CC BY 4.0 (Manuscript)
 - *External Verifier*: `python3 tools/verify_evidence.py`
 - *Formal Proof Command*: `z3 formal/deed_bounds_verification.smt2 && z3 formal/sequence_anti_replay.smt2`

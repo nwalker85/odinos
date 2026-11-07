@@ -249,9 +249,13 @@ Summary of Registered Claims:
 * **Active Working Branch:** `clean-zenodo-artifacts-354e271c`
 * **Pull Request:** [GitHub PR #10](https://github.com/nwalker85/odinos/pull/10)
 * **Permanent Archival DOI:** [`10.5281/zenodo.23928302`](https://doi.org/10.5281/zenodo.23928302)
-* **Repository Visibility Notice for External Reviewers:**
+* **Repository Visibility & Archive Provenance Notice for External Reviewers:**
   > The upstream GitHub repository `nwalker85/odinos` is currently maintained in **Private** visibility mode during pre-publication peer review. Consequently, unauthenticated external queries or automated integrations lacking repository collaborator permissions will receive an HTTP `404 Not Found` response from the GitHub API and web interface.
   >
-  > Independent reviewers have two complete access paths:
-  > 1. **Self-Contained Zenodo Archive:** The immutable, bit-identical source archive (`odin-os-v0.1.0-src.tar.gz`), cryptographic evidence manifests, raw UART receipts, and the 8-page companion guide (`peer-review.pdf`) are publicly accessible via Zenodo DOI `10.5281/zenodo.23928302`.
-  > 2. **Interactive Git Collaborator Access:** To inspect git commit history, branch lineage, or open PR discussions directly on GitHub, reviewers may request read collaborator access from the author (`nwalker85@gmail.com`), or consult the public release tag upon final un-gating.
+  > **Archive Version Lineage & Cryptographic Hash Distinction:**
+  > - **Zenodo Public Record (DOI `10.5281/zenodo.23928302`, Version 1):** Preserves the immutable Phase B.3.2 release candidate baseline (`cec5b2d3311`), containing the core microkernel, initial manuscript, and raw empirical execution receipts (`odin-os-v0.1.0-src.tar.gz`, MD5: `9caa2e1433d655fcf8d4aa3c3b2985d1`, 299,701 bytes).
+  > - **PR #10 / Review Head Baseline:** Extends the Phase B.3.2 release with the complete **Independent Peer-Review & Assurance Package** (commits `68f45c1..HEAD`), adding the 8-page falsification guide (`peer-review.pdf`), the 14-claim technical registry, the GSN assurance tree, the 10 raw evidence logs, and Apache-2.0 licensing. The updated companion package (`odin-os-v0.1.0-src.tar.gz`, 476,107 bytes) is provided directly to reviewers and tracks concept DOI `10.5281/zenodo.23928301`.
+  >
+  > Independent reviewers have two verification access paths:
+  > 1. **Standalone Reviewer Package:** Inspect and execute the complete, self-contained companion bundle and 8-page guide (`peer-review.pdf`) provided with the submission.
+  > 2. **Interactive Git Collaborator Access:** To inspect git commit history, branch lineage, or open PR discussions directly on GitHub, reviewers may request read collaborator access from the author (`nwalker85@gmail.com`).

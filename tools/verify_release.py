@@ -96,6 +96,8 @@ def main():
         "evidence_manifest": "peer-review/evidence-manifest.json",
         "zenodo_json": "zenodo/zenodo.json",
         "cargo_lock": "Cargo.lock",
+        "license": "LICENSE",
+        "notice": "NOTICE",
         "bounds_smt": "formal/deed_bounds_verification.smt2",
         "replay_smt": "formal/sequence_anti_replay.smt2",
         "receipts_json": "zenodo/receipts/adversarial_matrix_receipts.json",

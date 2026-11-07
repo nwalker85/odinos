@@ -13,7 +13,7 @@
       }
     ],
     "access_right": "open",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "keywords": [
       "RISC-V",
       "Operating Systems",

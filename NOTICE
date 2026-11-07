@@ -1,0 +1,8 @@
+Odin OS: Sovereign Capability Microkernel & Wordline Gated Silicon Runtime
+Copyright 2026 Nathan Walker / Ravenhelm Platform & Runestack Research
+
+This product includes software developed by Nathan Walker (nwalker85@gmail.com).
+
+Third-Party Components & Dependencies:
+- ed25519-compact: Copyright (c) Frank Denis (MIT License)
+- proptest: Copyright (c) 2017-2018 Jason Lingle (MIT OR Apache-2.0 License)
