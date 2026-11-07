@@ -1,5 +1,5 @@
 {
-  "timestamp": 1793724780.410262,
+  "timestamp": 1794088400.659286,
   "target_phase": "B.3.2",
   "gates": {
     "Host Unit Tests (23 cases)": "PASS",
@@ -19,19 +19,39 @@
     },
     "whitepaper_typ": {
       "path": "zenodo/odin-os-whitepaper.typ",
-      "sha256": "c183c8dd314496ac4977b7b27f91102750494f1d2137768b700f023a46c46ce7"
+      "sha256": "86a563de66ad79a525a62f000adaa990cf0bc35e5b169d368faca008fac5ac21"
     },
     "whitepaper_pdf": {
       "path": "zenodo/odin-os-whitepaper.pdf",
-      "sha256": "28f62e14bbb670e0efd7f5aa058c3d782adb6cc315f23ce948251b35cb43e167"
+      "sha256": "3c3164aa8a5d9267762145339417b55b86e6ab2b494f8b98c617377843392a96"
+    },
+    "peer_review_typ": {
+      "path": "peer-review/peer-review.typ",
+      "sha256": "e66689179830252334cc4e2db71c474f90435f64c59ae4752f30cbadaf1783b1"
+    },
+    "peer_review_pdf": {
+      "path": "peer-review/peer-review.pdf",
+      "sha256": "4d9065ba0671569fbcfe9f903089d40ae5f90db52a14c8beebc8f599a9fdd570"
+    },
+    "evidence_manifest": {
+      "path": "peer-review/evidence-manifest.json",
+      "sha256": "b74befd60d0b51a43ec28d015dbe9514d6edca38d140f54eec7205366e69e9cf"
     },
     "zenodo_json": {
       "path": "zenodo/zenodo.json",
-      "sha256": "b1cac35bad767f406bf0ff675dbd50213cf1f3f6b39169dfba0b562ce1f1a2d1"
+      "sha256": "013005e6c504d6bf43deae3758aafe607f88a672019666de6b6a9bfe49c542df"
     },
     "cargo_lock": {
       "path": "Cargo.lock",
       "sha256": "2b55b9d0b2079d5837e7c1209af5130d6b488c6efc2fb1bccde40bb1db6046f2"
+    },
+    "license": {
+      "path": "LICENSE",
+      "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+    },
+    "notice": {
+      "path": "NOTICE",
+      "sha256": "15983d81f351f07dfa361816c6c65fa513cae4683b07b74f68bd9ebb5d496ec5"
     },
     "bounds_smt": {
       "path": "formal/deed_bounds_verification.smt2",

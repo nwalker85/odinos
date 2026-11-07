@@ -1,0 +1,7 @@
+=== formal/deed_bounds_verification.smt2 ===
+unsat
+unsat
+unsat
+=== formal/sequence_anti_replay.smt2 ===
+unsat
+unsat

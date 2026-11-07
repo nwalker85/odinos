@@ -1,0 +1,30 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running unittests src/lib.rs (target/aarch64-apple-darwin/debug/deps/odin_kernel-d58c597895ae65a3)
+
+running 23 tests
+test tests::test_causal_trap_frame_layout ... ok
+test tests::test_deed_authority_forgery_rejection ... ok
+test tests::test_deed_missing_attestation_marker_rejection ... ok
+test tests::test_deed_payload_tampering_rejection ... ok
+test tests::test_ed25519_forged_garbage_signature_rejection ... ok
+test tests::test_ed25519_single_bit_flip_signature_rejection ... ok
+test tests::test_ed25519_tampered_sequence_rejection ... ok
+test tests::test_ed25519_tampered_operation_rejection ... ok
+test tests::test_ed25519_cross_protocol_domain_separation_rejection ... ok
+test tests::test_ed25519_vector_cross_compat ... ok
+test tests::test_ed25519_tampered_target_length_rejection ... ok
+test tests::test_transition_deed_physical_layout ... ok
+test tests::test_wordline_interlock_pass_within_bounds ... ok
+test tests::test_wordline_interlock_trap_out_of_bounds ... ok
+test tests::test_zero_copy_deed_parsing ... ok
+test tests::test_ed25519_tampered_target_offset_rejection ... ok
+test tests::prop_ast_mask_range_confinement ... ok
+test tests::test_ed25519_unauthorized_key_rejection ... ok
+test tests::prop_adversarial_issuer_mutation ... ok
+test tests::prop_payload_tamper_detection ... ok
+test tests::test_ed25519_valid_signature_acceptance ... ok
+test tests::prop_deed_overflow_protection ... ok
+test tests::prop_anti_replay_monotonicity ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
