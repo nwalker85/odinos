@@ -1,6 +1,6 @@
 #set page(
   paper: "a4",
-  margin: (top: 1.8cm, bottom: 1.8cm, left: 1.8cm, right: 1.8cm),
+  margin: (top: 1.5cm, bottom: 1.5cm, left: 1.6cm, right: 1.6cm),
   header: align(right)[
     #text(size: 8pt, fill: rgb("666666"))[Odin OS: Cryptographically Authorized Memory Mutation in a RISC-V PMP Environment]
   ],
@@ -27,6 +27,7 @@
   #text(size: 10.5pt, weight: "medium")[Nathan Walker] \
   #text(size: 8.5pt, fill: rgb("444444"))[Ravenhelm Platform & Runestack Research] \
   #text(size: 8.5pt, fill: rgb("444444"))[Email: `nwalker85@gmail.com` | ORCID: `0009-0005-0965-4424`] \
+  #text(size: 8.5pt, fill: rgb("444444"))[Permanent Archive DOI: `10.5281/zenodo.23928302` | Repository: `https://github.com/nwalker85/odinos`] \
   #text(size: 8.5pt, fill: rgb("666666"))[Publication Release Candidate --- Phase B.3.2 --- November 3, 2026]
   #v(0.3cm)
 ]
@@ -41,7 +42,7 @@
 )[
   #text(weight: "bold", size: 9.5pt)[Abstract] \
   #v(0.1cm)
-  Current paradigms in autonomous artificial intelligence rely predominantly on probabilistic software guardrails---natural language prompts, output schemas, and user-space virtual sandboxes---to constrain agent behavior. These mechanisms are vulnerable to direct prompt injection, semantic jailbreaks, and memory-state corruption. In this paper, we present *Odin OS*, a bare-metal, zero-allocation (`#![no_std]`) 64-bit RISC-V microkernel that anchors autonomous agent trust boundaries in processor Physical Memory Protection (PMP) comparators. Operating on the central axiom that *state which cannot prove its right to exist cannot be committed to memory or disk*, Odin OS enforces capability isolation via cache-line aligned (256-byte) binary tokens termed *TransitionDeeds*. 
+  Current paradigms in autonomous artificial intelligence rely predominantly on probabilistic software guardrails---natural language prompts, output schemas, and user-space virtual sandboxes---to constrain agent behavior. These mechanisms are vulnerable to direct prompt injection, semantic jailbreaks, and memory-state corruption. In this paper, we present *Odin OS*, a bare-metal, zero-allocation (`#![no_std]`) 64-bit RISC-V microkernel that anchors autonomous agent trust boundaries in processor Physical Memory Protection (PMP) comparators. Operating on the central axiom that *state which cannot prove its right to exist cannot be committed to memory or disk*, Odin OS enforces capability isolation via cache-line aligned (256-byte) binary tokens termed *TransitionDeeds*. We establish the primary falsifiable claim: *an untrusted U-Mode agent executing arbitrary instructions cannot commit a store to physical memory outside its explicitly authorized TransitionDeed window or after lease revocation without triggering an architectural CPU access fault (`mcause = 7`) that aborts the write and leaves target memory unmodified.*
 
   We present seven core contributions: (1) *Cryptographic Authorization*: Integration of RFC 8032 Ed25519 digital signature verification in pure `#![no_std]` without heap allocation (`no_alloc`), bound to a 32-byte pinned root public key, with decoupled Policy Decision Point (PDP) authority isolation; (2) *Bi-Directional $W xor X$ Privilege Configuration*: Domain partitioning configuring user code as read-execute (`R-X`, store attempts fault with `mcause = 7`), while user stack memory is read-write non-executable (`RW-`, instruction fetch attempts fault with `mcause = 1` and are safely redirected to caller return addresses); (3) *Dynamic Capability Revocation*: Privileged syscall interface (`SYS_REVOKE_LEASE`, `ecall 13`) that dynamically collapses PMP comparator windows to `OFF`; (4) *17-Case Adversarial Matrix Evaluation*: Bare-metal QEMU verification demonstrating that all 17 adversarial test cases passed under emulation, comprising processor-enforced access faults and software-enforced authorization checks; (5) *Machine-Checked Formal Properties*: Z3 SMT models (`QF_BV`) verifying bounded integer overflow immunity, memory disjointness, and anti-replay sequence monotonicity; (6) *Mutation Testing Sensitivity*: Controlled injection of 15 architectural and cryptographic mutations, with 15 out of 15 detected and killed by the test suite; and (7) *End-to-End LLM Bridge*: Live coupling to local `google/gemma-4-e4b` inference, demonstrating that authorized memory stores execute under configured PMP permissions without per-store kernel mediation, while out-of-bounds mutation attempts are rejected at the PDP or trapped by processor PMP checks with no modification to inspected memory locations.
 ]
@@ -81,6 +82,12 @@ Components are strictly categorized across five trust boundaries:
 - *Autonomous Agent (U-Mode Task)*: *Untrusted (Adversary)*. Executes untrusted model instructions and arbitrary arithmetic. Possesses zero signing keys and zero capability to modify PMP registers.
 - *Host / Python Bridge*: *Untrusted Transport Channel*. Transports model tokens and capability requests; possesses zero private keys and is assumed to be completely compromiseable.
 
+== Enforcement Boundary: Spatial PEP vs. Semantic PDP
+A critical architectural boundary governs Odin OS: the formal distinction between Policy Enforcement (PEP) and Policy Decision (PDP):
+- *Spatial & Temporal PEP (Microkernel & PMP)*: Odin OS operates strictly as a hardware-enforced Policy Enforcement Point. It guarantees spatial memory confinement (stores cannot retire outside authorized byte spans) and temporal containment (stores cannot occur before lease entry or after revocation). Crucially, the PEP is agnostic to higher-level business or application semantics: it enforces physical capability constraints, not whether a proposed mutation makes contextual sense.
+- *Semantic PDP (Host Authority)*: The Policy Decision Point evaluates declarative domain policies (e.g., agent identity, AST anchor legitimacy, allowed opcodes, lease duration caps) prior to minting and signing a TransitionDeed.
+- *Application Semantic Correctness*: Establishing whether an authorized business action is contextually "appropriate" (e.g., high-level semantic truth, application invariants) is explicitly decoupled from the microkernel's TCB. If an agent is tricked into requesting an unauthorized offset, the PDP denies the deed; if an agent attempts a store without or beyond an active deed, the CPU PMP traps the access.
+
 = TransitionDeed Protocol
 
 State transitions in Odin OS are mediated through *TransitionDeeds*. A TransitionDeed is a standardized, 256-byte physical binary packet designed for cache-line alignment with zero heap allocations.
@@ -88,6 +95,7 @@ State transitions in Odin OS are mediated through *TransitionDeeds*. A Transitio
 #figure(
   table(
     columns: (1.3cm, 2.3cm, 3.0cm, 5.2cm),
+    inset: (x: 4pt, y: 3pt),
     align: (center, left, left, left),
     stroke: 0.5pt + rgb("cbd5e0"),
     fill: (x, y) => if y == 0 { rgb("edf2f7") } else { none },
@@ -120,6 +128,7 @@ Odin OS partitions physical memory into five isolated privilege domains:
 #figure(
   table(
     columns: (1.1cm, 2.8cm, 1.5cm, 1.7cm, 4.5cm),
+    inset: (x: 4pt, y: 3pt),
     align: (center, left, center, center, left),
     stroke: 0.5pt + rgb("cbd5e0"),
     fill: (x, y) => if y == 0 { rgb("edf2f7") } else { none },
@@ -171,11 +180,33 @@ Our experimental evaluation executes on a 64-bit RISC-V platform (`riscv64gc-unk
 - *Layer A (In-Kernel)*: Direct M-Mode observation of trap causes, probed addresses, readback values, and memory preservation.
 - *Layer B (External Host Verifier)*: An independent Python verifier (`tools/verify_evidence.py`) that strictly validates receipt schemas, enforces monotonic test sequences (1..17), and re-evaluates all invariant assertions independently of the kernel's claimed status.
 
+== Claim-to-Evidence Mapping
+To provide peer reviewers with an explicit, bounded starting point for falsification, Table 3 maps each core architectural property to its trusted components, empirical test artifacts, and explicit non-scope boundaries:
+
+#figure(
+  table(
+    columns: (0.8cm, 2.7cm, 3.2cm, 3.1cm, 3.6cm),
+    inset: (x: 4pt, y: 3pt),
+    align: (center, left, left, left, left),
+    stroke: 0.5pt + rgb("cbd5e0"),
+    fill: (x, y) => if y == 0 { rgb("edf2f7") } else { none },
+    [*ID*], [*Claim / Property*], [*TCB & Assumptions*], [*Supporting Artifact / Test*], [*Explicitly Outside Scope*],
+    [`C1`], [Spatial Confinement], [RISC-V PMP comparators, M-Mode trap handler], [Adversarial Tests 1--4, 9, 10; Z3 Proof 1], [Timing side-channels; non-atomic split stores on unverified silicon],
+    [`C2`], [Temporal Revocation], [M-Mode syscall 13 (`SYS_REVOKE_LEASE`)], [Adversarial Test 16; Mutation M09], [Autonomous timer-interrupt cycle preemption (`mcycle`)],
+    [`C3`], [Cryptographic Authority], [`ed25519-compact` (`no_std`), pinned root key], [Adversarial Tests 11, 13, 14; Mutations M01, M02, M11--M13], [Host signing key compromise outside the microkernel],
+    [`C4`], [Anti-Replay Nonce], [In-kernel monotonic sequence counter `last_seq`], [Adversarial Test 12; Mutation M03; Z3 Proof 2], [NVRAM counter rollback across reset without re-keying],
+    [`C5`], [Bi-directional $W xor X$], [PMP Entry 1 (`R-X`), Entry 2 (`RW-`)], [Adversarial Tests 7 & 8; Mutations M06, M15], [Return-Oriented Programming (ROP) in valid user text],
+    [`C6`], [Semantic Appropriateness], [External Policy Decision Point (PDP)], [PDP Test Suite (12 attack vectors rejected)], [*Outside Odin OS PEP scope.* Kernel enforces capability bounds, not business logic.]
+  ),
+  caption: [Claim-to-evidence mapping across TCB assumptions, empirical artifacts, and non-goals.]
+)
+
 = Adversarial Results
 
 #figure(
   table(
     columns: (0.7cm, 3.6cm, 1.8cm, 0.7cm, 1.3cm, 1.3cm, 1.4cm, 1.0cm),
+    inset: (x: 4pt, y: 2.5pt),
     align: (center, left, center, center, center, center, center, center),
     stroke: 0.5pt + rgb("cbd5e0"),
     fill: (x, y) => if y == 0 { rgb("edf2f7") } else { none },
@@ -222,6 +253,7 @@ To evaluate test suite sensitivity, we injected 15 deliberate architectural and 
 #figure(
   table(
     columns: (1.0cm, 3.8cm, 3.0cm, 1.4cm),
+    inset: (x: 4pt, y: 2.5pt),
     align: (center, left, left, center),
     stroke: 0.5pt + rgb("cbd5e0"),
     fill: (x, y) => if y == 0 { rgb("edf2f7") } else { none },
@@ -278,8 +310,10 @@ By combining zero-allocation Ed25519 signature verification, bi-directional $W x
 
 = Reproducibility & Artifact Availability
 
-The complete Odin OS codebase, linker scripts, formal SMT specifications, and Layer B external verifiers are open-source and prepared for immutable archival on Zenodo upon publication release candidate acceptance.
-- *Repository*: `https://github.com/nwalker85/odinos`
+The complete Odin OS codebase, linker scripts, formal SMT specifications, and Layer B external verifiers are open-source and permanently archived on Zenodo.
+- *Permanent Archive DOI*: `https://doi.org/10.5281/zenodo.23928302`
+- *Zenodo Deposit*: `https://zenodo.org/records/23928302`
+- *Source Repository*: `https://github.com/nwalker85/odinos`
 - *Target Triple*: `riscv64gc-unknown-none-elf`
 - *External Verifier*: `python3 tools/verify_evidence.py`
 - *Formal Proof Command*: `z3 formal/deed_bounds_verification.smt2 && z3 formal/sequence_anti_replay.smt2`

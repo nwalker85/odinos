@@ -1,5 +1,5 @@
 {
-  "timestamp": 1793724780.410262,
+  "timestamp": 1794057958.7594838,
   "target_phase": "B.3.2",
   "gates": {
     "Host Unit Tests (23 cases)": "PASS",
@@ -19,15 +19,15 @@
     },
     "whitepaper_typ": {
       "path": "zenodo/odin-os-whitepaper.typ",
-      "sha256": "c183c8dd314496ac4977b7b27f91102750494f1d2137768b700f023a46c46ce7"
+      "sha256": "720c0425242a2fdc205b6b104d827d1301b0b2ccbf1ef5c7b470f50d50f850c4"
     },
     "whitepaper_pdf": {
       "path": "zenodo/odin-os-whitepaper.pdf",
-      "sha256": "28f62e14bbb670e0efd7f5aa058c3d782adb6cc315f23ce948251b35cb43e167"
+      "sha256": "74f2367dabb38db6933633748c748ce7ecb5a992b861e397752f24220323010e"
     },
     "zenodo_json": {
       "path": "zenodo/zenodo.json",
-      "sha256": "b1cac35bad767f406bf0ff675dbd50213cf1f3f6b39169dfba0b562ce1f1a2d1"
+      "sha256": "59e166601efb4cd45ca6412af698395805e02ff33912902665d10a0c410374de"
     },
     "cargo_lock": {
       "path": "Cargo.lock",
