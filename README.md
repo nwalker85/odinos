@@ -96,9 +96,20 @@ make verify-release
 
 ## Repository Navigation & Audit Documentation
 
-* [`zenodo/odin-os-whitepaper.pdf`](zenodo/odin-os-whitepaper.pdf) — Complete publication whitepaper manuscript.
+### Independent Peer-Review Package (`peer-review/`)
+* [`peer-review/peer-review.pdf`](peer-review/peer-review.pdf) — **Independent Verification & Falsification Guide** (8-page publication guide).
+* [`peer-review/CLAIMS_AND_EVIDENCE.md`](peer-review/CLAIMS_AND_EVIDENCE.md) — Exhaustive 14-claim technical registry with reproduction commands and falsification protocols.
+* [`peer-review/TRUST_BOUNDARIES.md`](peer-review/TRUST_BOUNDARIES.md) — The 4 Assurance Layers (Authorization, Hardware PEP, Transactional Integrity, Semantic Appropriateness).
+* [`peer-review/REPRODUCIBILITY.md`](peer-review/REPRODUCIBILITY.md) — Clean-room fast-path and step-by-step reproduction instructions.
+* [`peer-review/FALSIFICATION_PROTOCOLS.md`](peer-review/FALSIFICATION_PROTOCOLS.md) — 12 executable adversarial protocols (PROTO-01 through PROTO-12).
+* [`peer-review/KNOWN_LIMITATIONS.md`](peer-review/KNOWN_LIMITATIONS.md) — Transparent audit of silicon vs QEMU discrepancies, non-atomic split writes, and unhandled obligations.
+* [`peer-review/REVIEWER_FINDINGS_TEMPLATE.md`](peer-review/REVIEWER_FINDINGS_TEMPLATE.md) — Standardized report template for independent researchers.
+* [`peer-review/evidence-manifest.json`](peer-review/evidence-manifest.json) — Cryptographic SHA-256 evidence manifest tracking all 10 verified execution logs.
+
+### Primary Research Manuscript & Technical Audits
+* [`zenodo/odin-os-whitepaper.pdf`](zenodo/odin-os-whitepaper.pdf) — Complete 6-page publication whitepaper manuscript.
 * [`zenodo/odin-os-whitepaper.typ`](zenodo/odin-os-whitepaper.typ) — Typst source for the whitepaper.
-* [`PHASE_B32_CLAIM_EVIDENCE_MATRIX.md`](PHASE_B32_CLAIM_EVIDENCE_MATRIX.md) — 14-claim publication audit with DEMONSTRATED, QUALIFIED, and PROPOSED classifications.
+* [`PHASE_B32_CLAIM_EVIDENCE_MATRIX.md`](PHASE_B32_CLAIM_EVIDENCE_MATRIX.md) — Granular publication audit baseline.
 * [`PHASE_B32_ADVERSARIAL_REVIEW.md`](PHASE_B32_ADVERSARIAL_REVIEW.md) — Hostile peer review defense covering 14 academic rejection grounds.
 * [`PHASE_B31_PMP_ATOMICITY.md`](PHASE_B31_PMP_ATOMICITY.md) — Deep architectural analysis of split-bus accesses across protection boundaries under RISC-V ISA §2.6.
 * [`PHASE_B3_MUTATION_REPORT.md`](PHASE_B3_MUTATION_REPORT.md) — 15 architectural and cryptographic mutations injected and killed (15/15).

@@ -1,0 +1,284 @@
+    Finished `release` profile [optimized] target(s) in 0.01s
+     Running `qemu-system-riscv64 -machine virt -nographic -bios none -kernel target/riscv64gc-unknown-none-elf/release/odin-kernel`
+
+╔════════════════════════════════════════════════════════════════════════╗
+║     ODIN OS: PHASE B.2 ADVERSARIAL ASSURANCE & EVIDENCE INTEGRITY      ║
+║     Genuine Ed25519 Root Verification, W^X & Lease Expiration Suite   ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+[INIT] M-Mode trap vector registered at trap_entry (.balign 4).
+[INIT] Hardware mscratch armed with privileged kernel stack.
+[PMP] Hardened privilege boundary programmed in CPU hardware:
+  ├── [0x10000000 .. 0x10001000]: --- (UART0 MMIO: Revoked from U-Mode, M-Mode Only)
+  ├── [0x80000000 .. 0x80010000]: --- (Privileged Kernel: Code, Stack, Keys - Default Deny)
+  ├── [0x80010000 .. 0x80018000]: R-X (Agent Task Executable: Immutable)
+  ├── [0x80018000 .. 0x80020000]: RW- (Agent Task Stack: Non-Executable)
+  ├── [0x80020000 .. 0x0000000080020040]: --- (Pre-Lease AST Boundary: Gated)
+  ├── [0x0000000080020040 .. 0x0000000080020060]: RW- (Explicitly Authorized TransitionDeed Slice)
+  └── Perimeter [All other addresses]:     --- (Hardware Default Deny, WE = 0)
+
+[TRANSITION] Setting mstatus.MPP = U-Mode, switching sp to __user_stack_top...
+══════════════════════════════════════════════════════════════════════════
+▶ EXECUTING ADVERSARIAL VERIFICATION MATRIX (17 Invariant Tests)
+══════════════════════════════════════════════════════════════════════════
+
+{
+  "test_id": 1,
+  "test_name": "EXACT_LOWER_BOUND",
+  "target_address": "0x0000000080020040",
+  "access_width": 1,
+  "expected_fault": false,
+  "hardware_fault": false,
+  "mcause": "0x0000000000000000",
+  "probed_address": "0x0000000080020040",
+  "readback_value": "0x0000000000000041",
+  "expected_value": "0x0000000000000041",
+  "mutation_committed": true,
+  "memory_unmodified": false,
+  "status": "PASS"
+},
+{
+  "test_id": 2,
+  "test_name": "EXACT_UPPER_BOUND_MINUS_ONE",
+  "target_address": "0x000000008002005f",
+  "access_width": 1,
+  "expected_fault": false,
+  "hardware_fault": false,
+  "mcause": "0x0000000000000000",
+  "probed_address": "0x000000008002005f",
+  "readback_value": "0x0000000000000042",
+  "expected_value": "0x0000000000000042",
+  "mutation_committed": true,
+  "memory_unmodified": false,
+  "status": "PASS"
+},
+{
+  "test_id": 3,
+  "test_name": "ONE_BYTE_BELOW_LEASE",
+  "target_address": "0x000000008002003f",
+  "access_width": 1,
+  "expected_fault": true,
+  "hardware_fault": true,
+  "mcause": "0x0000000000000007",
+  "probed_address": "0x000000008002003f",
+  "readback_value": "0x0000000000000000",
+  "expected_value": "0x0000000000000000",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 4,
+  "test_name": "ONE_BYTE_ABOVE_LEASE",
+  "target_address": "0x0000000080020060",
+  "access_width": 1,
+  "expected_fault": true,
+  "hardware_fault": true,
+  "mcause": "0x0000000000000007",
+  "probed_address": "0x0000000080020060",
+  "readback_value": "0x0000000000000000",
+  "expected_value": "0x0000000000000000",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 5,
+  "test_name": "KERNEL_CODE_WRITE",
+  "target_address": "0x0000000080000000",
+  "access_width": 1,
+  "expected_fault": true,
+  "hardware_fault": true,
+  "mcause": "0x0000000000000007",
+  "probed_address": "0x0000000080000000",
+  "readback_value": "0x0000000000000017",
+  "expected_value": "0x0000000000000017",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 6,
+  "test_name": "KERNEL_STACK_WRITE",
+  "target_address": "0x000000008000fff8",
+  "access_width": 1,
+  "expected_fault": true,
+  "hardware_fault": true,
+  "mcause": "0x0000000000000007",
+  "probed_address": "0x000000008000fff8",
+  "readback_value": "0x0000000000000000",
+  "expected_value": "0x0000000000000000",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 7,
+  "test_name": "USER_CODE_WRITE_WX",
+  "target_address": "0x0000000080010000",
+  "access_width": 1,
+  "expected_fault": true,
+  "hardware_fault": true,
+  "mcause": "0x0000000000000007",
+  "probed_address": "0x0000000080010000",
+  "readback_value": "0x0000000000000009",
+  "expected_value": "0x0000000000000009",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 8,
+  "test_name": "USER_STACK_EXECUTE_WX",
+  "target_address": "0x0000000080018100",
+  "access_width": 0,
+  "expected_fault": true,
+  "hardware_fault": true,
+  "mcause": "0x0000000000000001",
+  "probed_address": "0x0000000000000000",
+  "readback_value": "0x0000000000000000",
+  "expected_value": "0x0000000000000000",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 9,
+  "test_name": "UNMAPPED_PERIMETER_WRITE",
+  "target_address": "0x0000000080030000",
+  "access_width": 1,
+  "expected_fault": true,
+  "hardware_fault": true,
+  "mcause": "0x0000000000000007",
+  "probed_address": "0x0000000080030000",
+  "readback_value": "0x0000000000000000",
+  "expected_value": "0x0000000000000000",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 10,
+  "test_name": "MULTIBYTE_OVERLAP_CROSSING",
+  "target_address": "0x000000008002005e",
+  "access_width": 4,
+  "expected_fault": true,
+  "hardware_fault": true,
+  "mcause": "0x0000000000000007",
+  "probed_address": "0x000000008002005e",
+  "readback_value": "0x0000000000000000",
+  "expected_value": "0x0000000000000000",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 11,
+  "test_name": "FORGED_DEED_UNTRUSTED_ISSUER",
+  "target_address": "0x0000000000000000",
+  "access_width": 0,
+  "expected_fault": false,
+  "hardware_fault": false,
+  "mcause": "0x0000000000000000",
+  "probed_address": "0x0000000000000000",
+  "readback_value": "0x0000000000000001",
+  "expected_value": "0x0000000000000001",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 12,
+  "test_name": "REPLAYED_DEED_SEQUENCE",
+  "target_address": "0x0000000000000000",
+  "access_width": 0,
+  "expected_fault": false,
+  "hardware_fault": false,
+  "mcause": "0x0000000000000000",
+  "probed_address": "0x0000000000000000",
+  "readback_value": "0x0000000000000002",
+  "expected_value": "0x0000000000000002",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 13,
+  "test_name": "FORGED_DEED_ED25519_INVALID_SIGNATURE",
+  "target_address": "0x0000000000000000",
+  "access_width": 0,
+  "expected_fault": false,
+  "hardware_fault": false,
+  "mcause": "0x0000000000000000",
+  "probed_address": "0x0000000000000000",
+  "readback_value": "0x0000000000000004",
+  "expected_value": "0x0000000000000004",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 14,
+  "test_name": "DEED_TAMPERED_METADATA_ED25519",
+  "target_address": "0x0000000000000000",
+  "access_width": 0,
+  "expected_fault": false,
+  "hardware_fault": false,
+  "mcause": "0x0000000000000000",
+  "probed_address": "0x0000000000000000",
+  "readback_value": "0x0000000000000004",
+  "expected_value": "0x0000000000000004",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 15,
+  "test_name": "U_MODE_CSR_TAMPER_PMPCFG0",
+  "target_address": "0x0000000000000000",
+  "access_width": 0,
+  "expected_fault": true,
+  "hardware_fault": true,
+  "mcause": "0x0000000000000002",
+  "probed_address": "0x0000000000000000",
+  "readback_value": "0x0000000000000000",
+  "expected_value": "0x0000000000000000",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 16,
+  "test_name": "EXPIRED_LEASE_TEMPORAL_REVOCATION",
+  "target_address": "0x0000000080020040",
+  "access_width": 1,
+  "expected_fault": true,
+  "hardware_fault": true,
+  "mcause": "0x0000000000000007",
+  "probed_address": "0x0000000080020040",
+  "readback_value": "0x0000000000000041",
+  "expected_value": "0x0000000000000041",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+{
+  "test_id": 17,
+  "test_name": "U_MODE_UART_MMIO_WRITE",
+  "target_address": "0x0000000010000000",
+  "access_width": 1,
+  "expected_fault": true,
+  "hardware_fault": true,
+  "mcause": "0x0000000000000007",
+  "probed_address": "0x0000000010000000",
+  "readback_value": "0x0000000000000000",
+  "expected_value": "0x0000000000000000",
+  "mutation_committed": false,
+  "memory_unmodified": true,
+  "status": "PASS"
+},
+
+══════════════════════════════════════════════════════════════════════════
+🎉 ALL 17 ADVERSARIAL INVARIANT TESTS PASSED WITH 100% HARDWARE ENFORCEMENT
+══════════════════════════════════════════════════════════════════════════
+

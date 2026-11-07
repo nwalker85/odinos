@@ -1,0 +1,47 @@
+════════════════════════════════════════════════════════════════════════════
+ODIN OS PHASE B.3.2 — CANONICAL RELEASE VERIFICATION PIPELINE
+════════════════════════════════════════════════════════════════════════════
+Repository Root: /Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo
+Timestamp:       2026-11-07T13:42:47Z
+
+▶ [Host Unit Tests (23 cases)] Running: cargo test --lib --target aarch64-apple-darwin
+  ✓ PASSED in 0.04s
+
+▶ [Microkernel Compilation (riscv64gc)] Running: cargo build --release --target riscv64gc-unknown-none-elf
+  ✓ PASSED in 0.03s
+
+▶ [QEMU Adversarial Matrix (17 cases)] Running: cargo run --release
+  ✓ PASSED in 0.06s
+
+▶ [Authority Isolation Suite (12 cases)] Running: python3 -m unittest tests/test_authority_isolation.py
+  ✓ PASSED in 0.05s
+
+▶ [Adversarial Verifier Audit (10 cases)] Running: python3 -m unittest tests/test_evidence_verifier_adversarial.py
+  ✓ PASSED in 0.05s
+
+▶ [Layer B External Verifier Audit] Running: python3 tools/verify_evidence.py
+  ✓ PASSED in 0.02s
+
+▶ [Formal SMT Proof 1 (Bounds)] Running: z3 formal/deed_bounds_verification.smt2
+  ✓ PASSED in 0.01s
+
+▶ [Formal SMT Proof 2 (Anti-Replay)] Running: z3 formal/sequence_anti_replay.smt2
+  ✓ PASSED in 0.01s
+
+▶ [Deterministic Whitepaper PDF Compilation] Running: typst compile zenodo/odin-os-whitepaper.typ zenodo/odin-os-whitepaper.pdf
+  ✓ PASSED in 0.24s
+
+▶ [Checksum Ledger] Computing release artifact digests...
+  ✓ target/riscv64gc-unknown-none-elf/release/odin-kernel 5d914428e7343bfe0e4499e119240fb22c5e014b5ca3595530d909e8c53b6ce1
+  ✓ zenodo/odin-os-whitepaper.typ                 720c0425242a2fdc205b6b104d827d1301b0b2ccbf1ef5c7b470f50d50f850c4
+  ✓ zenodo/odin-os-whitepaper.pdf                 74f2367dabb38db6933633748c748ce7ecb5a992b861e397752f24220323010e
+  ✓ zenodo/zenodo.json                            59e166601efb4cd45ca6412af698395805e02ff33912902665d10a0c410374de
+  ✓ Cargo.lock                                    2b55b9d0b2079d5837e7c1209af5130d6b488c6efc2fb1bccde40bb1db6046f2
+  ✓ formal/deed_bounds_verification.smt2          f582d2a80a2edb4f0f0100d929a3b29413f4991a9676653cd9d6b57c35853e09
+  ✓ formal/sequence_anti_replay.smt2              99504b5c97aebd6b92b335dccb155b4e867d3fd7731f74b42d7e218add4dde09
+  ✓ zenodo/receipts/adversarial_matrix_receipts.json a3c5abc7ffaa67705875c15ba964cebe9a970406f3e4b27c5cbed38e869fd1d6
+  ✓ zenodo/receipts/raw_execution_trace.txt       fef3815426fa6430356e3154633b22eca105ffd70c5fad6c0878e10745ceb06e
+
+[REPORT] Machine-readable verification written to: /Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/release_verification_report.json
+
+🎉 ALL RELEASE VERIFICATION GATES PASSED (DECISION: GO)

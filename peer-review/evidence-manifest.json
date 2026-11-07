@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Odin OS Evidence Manifest",
+  "version": "1.0.0",
+  "git_commit": "68f45c1cd45e4df29bb6139661ab4894713709ed",
+  "target_phase": "B.3.2",
+  "verification_timestamp": "2026-11-07T13:42:48Z",
+  "host_environment": {
+    "os": "macOS-27.0.1-arm64",
+    "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+    "cargo": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+    "qemu": "QEMU emulator version 11.1.3",
+    "z3": "Z3 version 5.3.1 - 64 bit",
+    "python": "3.14.8",
+    "typst": "typst 0.15.1"
+  },
+  "artifacts": [
+    {
+      "id": "EV-001",
+      "path": "peer-review/evidence/qemu-adversarial-matrix.txt",
+      "claims": [
+        "ODIN-C001",
+        "ODIN-C005",
+        "ODIN-C006",
+        "ODIN-C007",
+        "ODIN-C008"
+      ],
+      "command": "cargo run --release",
+      "origin": "clean-room QEMU 11.1.3 virt execution",
+      "status": "VERIFIED_PASS",
+      "sha256": "4b08be3f15d1781ccbc44aa63c287782ba4ad7c6da29ab8f5847add4619df8e0",
+      "size_bytes": 10133
+    },
+    {
+      "id": "EV-002",
+      "path": "peer-review/evidence/host-unit-tests.txt",
+      "claims": [
+        "ODIN-C003",
+        "ODIN-C009"
+      ],
+      "command": "cargo test --lib --target aarch64-apple-darwin",
+      "origin": "host Rust test runner",
+      "status": "VERIFIED_PASS",
+      "sha256": "9d4ffd60ff4afa2338b5bc107646eaec8aab1ec3bf784baacb74f30f6ab0c602",
+      "size_bytes": 1629
+    },
+    {
+      "id": "EV-003",
+      "path": "peer-review/evidence/smt-proofs.txt",
+      "claims": [
+        "ODIN-C004",
+        "ODIN-C009"
+      ],
+      "command": "z3 formal/deed_bounds_verification.smt2 && z3 formal/sequence_anti_replay.smt2",
+      "origin": "Z3 5.3.1 QF_BV SMT solver",
+      "status": "VERIFIED_PASS",
+      "sha256": "61cbbfc39ef24209ea4eb48ef450c437838ad432c67bc8da010950bd4acdc7dc",
+      "size_bytes": 116
+    },
+    {
+      "id": "EV-004",
+      "path": "peer-review/evidence/authority-isolation-suite.txt",
+      "claims": [
+        "ODIN-C002"
+      ],
+      "command": "python3 -m unittest tests/test_authority_isolation.py",
+      "origin": "host Python unittest runner",
+      "status": "VERIFIED_PASS",
+      "sha256": "f29f7827b66a1937eec363ec247bf347476092ad98d6e1de4cef3111b610bef6",
+      "size_bytes": 111
+    },
+    {
+      "id": "EV-005",
+      "path": "peer-review/evidence/verifier-adversarial-suite.txt",
+      "claims": [
+        "ODIN-C010"
+      ],
+      "command": "python3 -m unittest tests/test_evidence_verifier_adversarial.py",
+      "origin": "host Python adversarial tamper suite",
+      "status": "VERIFIED_PASS",
+      "sha256": "38eeff1237d74275801617a271eced659e08b1cad8069897d18e659ae40641d8",
+      "size_bytes": 109
+    },
+    {
+      "id": "EV-006",
+      "path": "peer-review/evidence/layer-b-evidence-verifier.txt",
+      "claims": [
+        "ODIN-C010"
+      ],
+      "command": "python3 tools/verify_evidence.py",
+      "origin": "independent Python trace auditor",
+      "status": "VERIFIED_PASS",
+      "sha256": "02c047de550593357b2124ebcc6bf08a3d97990b1dd3c68474fc1851ef112a7e",
+      "size_bytes": 1178
+    },
+    {
+      "id": "EV-007",
+      "path": "peer-review/evidence/release-verification-pipeline.txt",
+      "claims": [
+        "ODIN-C001",
+        "ODIN-C002",
+        "ODIN-C003",
+        "ODIN-C004",
+        "ODIN-C005",
+        "ODIN-C006",
+        "ODIN-C007",
+        "ODIN-C009",
+        "ODIN-C010"
+      ],
+      "command": "python3 tools/verify_release.py",
+      "origin": "automated clean-room verification pipeline",
+      "status": "VERIFIED_PASS",
+      "sha256": "87cabd7de80a36e33fc6f77e5aa355d480147cba0acae7acda69650cae67c8ca",
+      "size_bytes": 3049
+    },
+    {
+      "id": "EV-008",
+      "path": "peer-review/evidence/gemma-bridge-execution.txt",
+      "claims": [
+        "ODIN-C013"
+      ],
+      "command": "python3 tools/gemma_odin_bridge.py",
+      "origin": "neural inference deflection bridge",
+      "status": "VERIFIED_PASS",
+      "sha256": "2ab695abe4b118818364569b17c3a3065652df931309a262ee7d8f7d20af07fe",
+      "size_bytes": 23995
+    },
+    {
+      "id": "EV-009",
+      "path": "zenodo/receipts/adversarial_matrix_receipts.json",
+      "claims": [
+        "ODIN-C001",
+        "ODIN-C005",
+        "ODIN-C006",
+        "ODIN-C007",
+        "ODIN-C008"
+      ],
+      "command": "cargo run --release (UART JSON stream)",
+      "origin": "Machine-mode UART receipt serialization",
+      "status": "AUTHENTICATED",
+      "sha256": "a3c5abc7ffaa67705875c15ba964cebe9a970406f3e4b27c5cbed38e869fd1d6",
+      "size_bytes": 7635
+    },
+    {
+      "id": "EV-010",
+      "path": "zenodo/receipts/raw_execution_trace.txt",
+      "claims": [
+        "ODIN-C001",
+        "ODIN-C005",
+        "ODIN-C006",
+        "ODIN-C007",
+        "ODIN-C008"
+      ],
+      "command": "cargo run --release (Raw UART ASCII trace)",
+      "origin": "Machine-mode UART raw console log",
+      "status": "AUTHENTICATED",
+      "sha256": "fef3815426fa6430356e3154633b22eca105ffd70c5fad6c0878e10745ceb06e",
+      "size_bytes": 10215
+    }
+  ]
+}
