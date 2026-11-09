@@ -355,7 +355,7 @@ The following protocols provide explicit recipes for independent researchers att
 
 = Known Limitations & Unresolved Proof Obligations
 
-1. *PMP Grain Size ($G > 0$ on Physical Silicon):* QEMU virt implements $G = 0$ (byte granularity). Physical silicon with $G \ge 4$ enforces 16-byte alignment bounds.
+1. *PMP Grain Size ($G > 0$ on Physical Silicon, $2^{G+2}$ Bytes):* Per RISC-V Privileged ISA §3.7, minimum PMP granularity is $2^{G+2}$ bytes (`pmpaddr` shifts physical addresses right by 2). QEMU `virt` implements $G = 0$ (4-byte minimum region granularity). Physical silicon with $G = 2$ enforces 16-byte alignment bounds, $G = 4$ enforces 64-byte cache-line bounds, and $G = 6$ enforces 256-byte bounds.
 2. *Write-Buffer Draining on Pipelined Cores:* Pipelined physical silicon requires explicit `fence rw, rw` barriers during PMP reprogramming.
 3. *Misaligned Access Atomicity:* RISC-V ISA §2.6 permits non-atomic split transfers; physical deployment mandates shadow AST staging buffers.
 4. *Autonomous Preemption:* Capability leases currently require explicit syscall revocation; hardware timer interrupts (`mcycle`/`mtimecmp`) are designed for Phase C.

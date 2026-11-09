@@ -17,7 +17,7 @@ While QEMU provides an ideal deterministic platform for developing privileged so
 ```
 Feature                  QEMU virt Platform (Phase B.2)   Physical Silicon (Phase C Target)
 ─────────────────────────────────────────────────────────────────────────────────────────────
-PMP Region Granularity   Byte-exact TOR resolution        $G \ge 2$ or $G \ge 4$ (Grain size $\ge 4$ or 16 bytes)
+PMP Region Granularity   4-byte TOR resolution ($G = 0$)  $G \ge 2$ or $G \ge 4$ (Grain size $2^{G+2}$: 16B or 64B)
 PMP Entry Count          16 configurable entries          8 to 16 entries (e.g. Kendryte K210 has 8 entries)
 PMP Execution Trap       Instant trap, 0-cycle flush      Pipeline flush, store buffer drain required
 Interrupt Controller     Emulated PLIC / CLINT            Physical PLIC / ACLINT with wire-level latencies
@@ -31,7 +31,7 @@ Cache Coherency & Fences Relaxed / No writeback delays    Hardware L1/L2 caches;
 ## 2. Key Silicon Constraints & Engineering Mitigations
 
 ### 2.1 PMP Granularity & Alignment ($G$)
-- **Constraint:** In the RISC-V Privileged Specification, PMP entries in Top-of-Range (TOR) mode have an implementation-defined minimum granularity $G$. If $G > 0$, the low $G$ bits of `pmpaddr` are ignored or hardwired to zero. For example, if $G = 4$, regions must be aligned to 16-byte boundaries.
+- **Constraint:** In the RISC-V Privileged Specification (§3.7), PMP entries in Top-of-Range (TOR) mode have an implementation-defined minimum granularity $G$, corresponding to $2^{G+2}$ bytes (`pmpaddr` shifts physical addresses right by 2). If $G > 0$, the low $G$ bits of `pmpaddr` are hardwired to zero: for $G = 2$, regions must be aligned to 16-byte boundaries; for $G = 4$, regions must be aligned to 64-byte cache-line boundaries.
 - **Mitigation:** In Phase C, the `TransitionDeed` allocator must enforce:
   $$\text{TargetOffset} \equiv 0 \pmod{2^{G+2}}, \quad \text{TargetLength} \equiv 0 \pmod{2^{G+2}}$$
   For 16-byte grain ($G=2$), capability allocations must be padded to 16-byte cache-line boundaries.
