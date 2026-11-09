@@ -40,7 +40,7 @@ This adversarial audit evaluates the publication release candidate against 14 sp
 - **Evidence Examined:** `src/main.rs:226..260` (`setup_pmp`), Matrix Tests 3, 4, 5, 6, 7, 8, 9, 10, 15, 17.
 - **Test Performed:** Re-executed QEMU adversarial matrix tests (`cargo run --release`).
 - **Result:** **DEFENDED.** All out-of-bounds store attempts trigger Store Access Fault (`mcause = 7`); stack instruction fetches trigger Instruction Access Fault (`mcause = 1`); unprivileged CSR writes trigger Illegal Instruction (`mcause = 2`).
-- **Remaining Limitation:** In QEMU, grain size is $G = 0$; physical silicon with $G \ge 4$ enforces 16-byte alignment bounds.
+- **Remaining Limitation:** Per RISC-V Privileged ISA §3.7, minimum PMP granularity is $2^{G+2}$ bytes; in QEMU, grain size is $G = 0$ (4-byte region granularity), whereas physical silicon with $G = 2$ enforces 16-byte alignment bounds and $G = 4$ enforces 64-byte cache-line bounds.
 
 ---
 
