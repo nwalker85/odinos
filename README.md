@@ -62,11 +62,15 @@ For peer reviewers seeking an exact, bounded claim to falsify:
 | **C6** | **Semantic Appropriateness** | `ASSURANCE BOUNDARY` | External Policy Decision Point (PDP) | PDP Suite (12 attack vectors rejected) | **Outside Odin OS PEP Scope**. Microkernel enforces spatial capability, not business logic. |
 
 > **Repository Visibility & Zenodo Archive Provenance:**  
-> The upstream GitHub repository is currently private during pre-publication peer review (yielding HTTP `404 Not Found` to unauthenticated tools).  
-> The public Zenodo record ([Concept DOI 10.5281/zenodo.23928301](https://doi.org/10.5281/zenodo.23928301)) provides access to both archived releases:
+> The upstream GitHub repository ([`nwalker85/odinos`](https://github.com/nwalker85/odinos)) is open and publicly accessible, hosting the live source code, implementation history, tests, formal verification models, and reproducibility tooling. Reviewers can directly inspect the core peer-review artifacts in this tree:
+> - **[Claim-to-Evidence Registry](peer-review/CLAIMS_AND_EVIDENCE.md):** Granular 14-claim technical registry mapping invariants to test evidence.
+> - **[Falsification Protocols](peer-review/FALSIFICATION_PROTOCOLS.md):** 12 executable adversarial protocols for independent verification.
+> - **[Known Limitations](peer-review/KNOWN_LIMITATIONS.md):** Transparent audit of silicon vs. QEMU boundaries and open proof obligations.
+> - **[Clean-Room Reproducibility](peer-review/REPRODUCIBILITY.md):** Step-by-step reproduction guide and execution receipts.
+> 
+> For permanent citations and frozen provenance, the public Zenodo record ([Concept DOI 10.5281/zenodo.23928301](https://doi.org/10.5281/zenodo.23928301)) provides access to immutable, versioned research archives:
 > - **Version 1 ([DOI 10.5281/zenodo.23928302](https://doi.org/10.5281/zenodo.23928302)):** The frozen Phase B.3.2 release candidate baseline (`cec5b2d`, tarball MD5 `9caa2e1433d655fcf8d4aa3c3b2985d1`, 299 KB).
 > - **Version 2 ([DOI 10.5281/zenodo.24044570](https://doi.org/10.5281/zenodo.24044570)):** The complete Independent Peer-Review & Assurance Package (commits `68f45c1..818def4`), containing the 8-page companion guide (`peer-review.pdf`), the GSN assurance tree, 12 falsification protocols, and the Apache-2.0 source distribution (`odin-os-v0.1.0-src.tar.gz`, 480 KB).
-> Reviewers can inspect and reproduce results directly from either Zenodo version or request GitHub collaborator access from `nwalker85@gmail.com`.
 
 ---
 
