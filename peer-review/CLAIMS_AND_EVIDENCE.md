@@ -59,9 +59,9 @@ Summary of Registered Claims:
   * *Unauthorized-Byte Preservation (Demonstrated Invariant):* Hardware PMP comparators deny write-enable signals to unauthorized memory addresses. In all tested cases (Tests 3, 4, 9, and cross-boundary Test 10), out-of-bounds target bytes are preserved completely unmodified (`0x00`).
   * *Complete Store Atomicity across Protection Boundaries (Qualified Limitation):* For multi-byte stores straddling an authorized/unauthorized boundary (e.g. 4-byte store at `0x8002005E`), QEMU evaluates the access atomically and modifies no bytes (Test 10). However, base RISC-V Unprivileged ISA §2.6 permits non-atomic execution of misaligned accesses on physical silicon, where in-bounds lower bytes could commit before a fault is raised on the out-of-bounds portion. Therefore, complete store atomicity across boundaries is qualified by `ODIN-C008` and remains an open physical-silicon proof obligation (to be resolved architecturally via Phase C Shadow AST staging buffers, `ODIN-C011`).
 * **Source Implementation:**
-  * PMP Setup: [`src/main.rs:226..260`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs#L226-L260) (`setup_pmp`)
-  * Trap Handler: [`src/main.rs:857..1054`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs#L857-L1054) (`handle_trap`)
-  * Adversarial Runner: [`src/main.rs:565..630`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs#L565-L630)
+  * PMP Setup: [`src/main.rs:226..260`](../src/main.rs#L226-L260) (`setup_pmp`)
+  * Trap Handler: [`src/main.rs:857..1054`](../src/main.rs#L857-L1054) (`handle_trap`)
+  * Adversarial Runner: [`src/main.rs:565..630`](../src/main.rs#L565-L630)
 * **Supporting Tests:**
   * In-bounds lower bound (`0x80020040`): Test 1 (Commit, `mcause = 0x00`)
   * In-bounds upper bound minus one (`0x8002005F`): Test 2 (Commit, `mcause = 0x00`)
@@ -69,8 +69,8 @@ Summary of Registered Claims:
   * One byte above lease (`0x80020060`): Test 4 (Trap, `mcause = 0x07`, readback `0x00`)
   * Unmapped perimeter (`0x80030000`): Test 9 (Trap, `mcause = 0x07`, readback `0x00`)
 * **Supporting Raw Evidence:**
-  * File: [`peer-review/evidence/qemu-adversarial-matrix.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/qemu-adversarial-matrix.txt)
-  * File: [`peer-review/evidence/layer-b-evidence-verifier.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/layer-b-evidence-verifier.txt)
+  * File: [`peer-review/evidence/qemu-adversarial-matrix.txt`](evidence/qemu-adversarial-matrix.txt)
+  * File: [`peer-review/evidence/layer-b-evidence-verifier.txt`](evidence/layer-b-evidence-verifier.txt)
 * **Reproduction Command:** `cargo run --release`
 * **Expected vs Actual Observations:**
   * Expected: All out-of-bounds stores trap with `mcause = 7`, `hardware_fault = true`, `memory_unmodified = true`.
@@ -81,7 +81,7 @@ Summary of Registered Claims:
   * Does not defend against microarchitectural cache-timing side channels (Spectre/Meltdown).
   * Does not generalize store atomicity to physical silicon without shadow AST staging buffers.
 * **Assurance Status:** **`REPRODUCED`**
-* **Falsification Procedure:** Refer to Protocol `PROTO-01` in [`FALSIFICATION_PROTOCOLS.md`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/FALSIFICATION_PROTOCOLS.md).
+* **Falsification Procedure:** Refer to Protocol `PROTO-01` in [`FALSIFICATION_PROTOCOLS.md`](FALSIFICATION_PROTOCOLS.md).
 
 ---
 
@@ -95,10 +95,10 @@ Summary of Registered Claims:
   1. The host operating system account running the PDP is not compromised.
   2. Guarantees are bounded by the host OS process and memory isolation model (`chmod 600`). This does not claim universal immunity against root-level OS compromise, physical DRAM bus probing, or hardware side-channels.
 * **Source Implementation:**
-  * PDP Service: [`tools/pdp_authority_service.py`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/tools/pdp_authority_service.py)
-  * Compile Key Injector: [`build.rs`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/build.rs)
+  * PDP Service: [`tools/pdp_authority_service.py`](../tools/pdp_authority_service.py)
+  * Compile Key Injector: [`build.rs`](../build.rs)
 * **Supporting Tests:** `tests/test_authority_isolation.py` (12 unit test vectors).
-* **Supporting Raw Evidence:** [`peer-review/evidence/authority-isolation-suite.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/authority-isolation-suite.txt)
+* **Supporting Raw Evidence:** [`peer-review/evidence/authority-isolation-suite.txt`](evidence/authority-isolation-suite.txt)
 * **Reproduction Command:** `python3 -m unittest tests/test_authority_isolation.py`
 * **Expected vs Actual Observations:** All 12 adversarial requests rejected (unauthorized anchors, invalid opcodes, oversized spans, rogue DIDs, sequence resets).
 * **Assurance Status:** **`REPRODUCED`**
@@ -111,11 +111,11 @@ Summary of Registered Claims:
 * **Assurance Category:** Layer A (Cryptographic Authorization)
 * **Scope & Environment:** RISC-V Bare-Metal M-Mode & Host Rust Unittests.
 * **Trusted Components (TCB):** `ed25519-compact` v2.6.0 crate, microkernel deed parser.
-* **Source Implementation:** [`src/deed.rs:185..194`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/deed.rs#L185-L194) (`verify_ed25519_signature`)
+* **Source Implementation:** [`src/deed.rs:185..194`](../src/deed.rs#L185-L194) (`verify_ed25519_signature`)
 * **Supporting Tests:**
   * Matrix Tests 11, 13, 14 (QEMU bare-metal)
   * Host Tests: `test_ed25519_single_bit_flip_signature_rejection`, `test_ed25519_unauthorized_key_rejection`, `prop_payload_tamper_detection`.
-* **Supporting Raw Evidence:** [`peer-review/evidence/host-unit-tests.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/host-unit-tests.txt)
+* **Supporting Raw Evidence:** [`peer-review/evidence/host-unit-tests.txt`](evidence/host-unit-tests.txt)
 * **Reproduction Command:** `cargo test --lib --target aarch64-apple-darwin`
 * **Assurance Status:** **`REPRODUCED`**
 
@@ -126,9 +126,9 @@ Summary of Registered Claims:
 * **Exact Statement:** TransitionDeeds resubmitted with an identical or stale sequence number ($s \le \text{last\_seq}$) are rejected with `DeedError::ReplayDetected`. resubmission is mathematically unsatisfiable under strict monotonicity assumptions.
 * **Assurance Category:** Layer A (Cryptographic Authorization)
 * **Scope & Environment:** Microkernel runtime and Z3 SMT Formal Model.
-* **Source Implementation:** [`src/deed.rs:141`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/deed.rs#L141); [`formal/sequence_anti_replay.smt2`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/formal/sequence_anti_replay.smt2)
+* **Source Implementation:** [`src/deed.rs:141`](../src/deed.rs#L141); [`formal/sequence_anti_replay.smt2`](../formal/sequence_anti_replay.smt2)
 * **Supporting Tests:** Matrix Test 12; Z3 Theorems 4 & 5.
-* **Supporting Raw Evidence:** [`peer-review/evidence/smt-proofs.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/smt-proofs.txt)
+* **Supporting Raw Evidence:** [`peer-review/evidence/smt-proofs.txt`](evidence/smt-proofs.txt)
 * **Reproduction Command:** `z3 formal/sequence_anti_replay.smt2`
 * **Assurance Status:** **`MODEL-CHECKED`** and **`REPRODUCED`**
 * **Limitation:** In-memory sequence resets on hard CPU power loss unless persistent NVRAM is provisioned.
@@ -139,9 +139,9 @@ Summary of Registered Claims:
 
 * **Exact Statement:** User task code memory is mapped as read-execute (`R-X`, store attempts fault with `mcause = 7`), while user stack memory is read-write non-executable (`RW-`, instruction fetch attempts fault with `mcause = 1` and are safely redirected to caller return address).
 * **Assurance Category:** Layer B (Hardware Enforcement)
-* **Source Implementation:** [`src/main.rs:239..240`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs#L239-L240), [`src/main.rs:1039..1045`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs#L1039-L1045)
+* **Source Implementation:** [`src/main.rs:239..240`](../src/main.rs#L239-L240), [`src/main.rs:1039..1045`](../src/main.rs#L1039-L1045)
 * **Supporting Tests:** Matrix Test 7 (code write) & Test 8 (stack execute); Mutations M06 & M15.
-* **Supporting Raw Evidence:** [`peer-review/evidence/qemu-adversarial-matrix.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/qemu-adversarial-matrix.txt)
+* **Supporting Raw Evidence:** [`peer-review/evidence/qemu-adversarial-matrix.txt`](evidence/qemu-adversarial-matrix.txt)
 * **Assurance Status:** **`REPRODUCED`**
 
 ---
@@ -150,9 +150,9 @@ Summary of Registered Claims:
 
 * **Exact Statement:** Microkernel syscall 13 (`SYS_REVOKE_LEASE`) clears active lease boundaries and collapses the corresponding PMP register window to `OFF`. Subsequent store attempts to the previously valid lease slice immediately trigger an architectural Store Access Fault (`mcause = 7`).
 * **Assurance Category:** Layer B (Hardware Enforcement)
-* **Source Implementation:** [`src/main.rs:1014..1021`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs#L1014-L1021); [`src/main.rs:252`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs#L252)
+* **Source Implementation:** [`src/main.rs:1014..1021`](../src/main.rs#L1014-L1021); [`src/main.rs:252`](../src/main.rs#L252)
 * **Supporting Tests:** Matrix Test 16; Mutation M09.
-* **Supporting Raw Evidence:** [`peer-review/evidence/qemu-adversarial-matrix.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/qemu-adversarial-matrix.txt)
+* **Supporting Raw Evidence:** [`peer-review/evidence/qemu-adversarial-matrix.txt`](evidence/qemu-adversarial-matrix.txt)
 * **Assurance Status:** **`REPRODUCED`**
 
 ---
@@ -161,9 +161,9 @@ Summary of Registered Claims:
 
 * **Exact Statement:** Untrusted User Mode cannot access or manipulate PMP configuration registers (`pmpcfg0`, trapping with `mcause = 2`) or UART0 MMIO registers (`0x10000000`, trapping with `mcause = 7`).
 * **Assurance Category:** Layer B (Hardware Enforcement)
-* **Source Implementation:** [`src/main.rs:234`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs#L234); Linker script Domain 0 layout.
+* **Source Implementation:** [`src/main.rs:234`](../src/main.rs#L234); Linker script Domain 0 layout.
 * **Supporting Tests:** Matrix Tests 15 & 17; Mutation M07.
-* **Supporting Raw Evidence:** [`peer-review/evidence/qemu-adversarial-matrix.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/qemu-adversarial-matrix.txt)
+* **Supporting Raw Evidence:** [`peer-review/evidence/qemu-adversarial-matrix.txt`](evidence/qemu-adversarial-matrix.txt)
 * **Assurance Status:** **`REPRODUCED`**
 
 ---
@@ -174,9 +174,9 @@ Summary of Registered Claims:
 * **Assurance Category:** Layer B (Hardware Enforcement)
 * **Scope & Environment:** QEMU 11.1.3 virt (rv64).
 * **Qualification & Limitation:** RISC-V Unprivileged Architecture §2.6 explicitly does not guarantee atomicity for misaligned accesses. Physical silicon cores may commit lower bytes prior to trapping on the boundary.
-* **Source Implementation:** [`src/main.rs:623..637`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs#L623-L637)
+* **Source Implementation:** [`src/main.rs:623..637`](../src/main.rs#L623-L637)
 * **Supporting Tests:** Matrix Test 10.
-* **Supporting Raw Evidence:** [`peer-review/evidence/qemu-adversarial-matrix.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/qemu-adversarial-matrix.txt)
+* **Supporting Raw Evidence:** [`peer-review/evidence/qemu-adversarial-matrix.txt`](evidence/qemu-adversarial-matrix.txt)
 * **Assurance Status:** **`QUALIFIED`** (Holds in QEMU; requires shadow AST staging for physical silicon portability).
 
 ---
@@ -185,9 +185,9 @@ Summary of Registered Claims:
 
 * **Exact Statement:** Checked addition on deed offset and span length (`target_offset.checked_add(target_length)`) prevents integer overflow wrapping and rejects out-of-bounds wrap attacks. Verified mathematically in Z3 QF_BV.
 * **Assurance Category:** Layer C (Transactional Integrity)
-* **Source Implementation:** [`src/deed.rs:149`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/deed.rs#L149); [`formal/deed_bounds_verification.smt2`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/formal/deed_bounds_verification.smt2)
+* **Source Implementation:** [`src/deed.rs:149`](../src/deed.rs#L149); [`formal/deed_bounds_verification.smt2`](../formal/deed_bounds_verification.smt2)
 * **Supporting Tests:** Z3 Theorem 1; `prop_deed_overflow_protection`.
-* **Supporting Raw Evidence:** [`peer-review/evidence/smt-proofs.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/smt-proofs.txt)
+* **Supporting Raw Evidence:** [`peer-review/evidence/smt-proofs.txt`](evidence/smt-proofs.txt)
 * **Assurance Status:** **`MODEL-CHECKED`** and **`REPRODUCED`**
 
 ---
@@ -196,9 +196,9 @@ Summary of Registered Claims:
 
 * **Exact Statement:** The external Layer B Python verifier strictly validates raw execution receipts, verifies monotonic sequence continuity (1..17), re-evaluates all assertions independently of kernel telemetry, and detects injected forged PASS records.
 * **Assurance Category:** Layer C (Transactional Integrity)
-* **Source Implementation:** [`tools/verify_evidence.py`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/tools/verify_evidence.py)
+* **Source Implementation:** [`tools/verify_evidence.py`](../tools/verify_evidence.py)
 * **Supporting Tests:** 10 unit tests in `tests/test_evidence_verifier_adversarial.py`.
-* **Supporting Raw Evidence:** [`peer-review/evidence/layer-b-evidence-verifier.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/layer-b-evidence-verifier.txt)
+* **Supporting Raw Evidence:** [`peer-review/evidence/layer-b-evidence-verifier.txt`](evidence/layer-b-evidence-verifier.txt)
 * **Reproduction Command:** `python3 tools/verify_evidence.py`
 * **Assurance Status:** **`REPRODUCED`**
 
@@ -228,8 +228,8 @@ Summary of Registered Claims:
 
 * **Exact Statement:** When an autonomous LLM (`google/gemma-4-e4b`) is prompted with an adversarial jailbreak to write to unmapped kernel memory (`0x80030000`), the mutation is blocked at Layer 1 by the PDP (denying deed issuance) and, if injected directly into U-Mode, trapped at Layer 2 by CPU PMP comparators (`mcause = 7`, zero bits committed).
 * **Assurance Category:** Layer D (Semantic Appropriateness)
-* **Source Implementation:** [`tools/gemma_odin_bridge.py`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/tools/gemma_odin_bridge.py)
-* **Supporting Raw Evidence:** [`peer-review/evidence/gemma-bridge-execution.txt`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/peer-review/evidence/gemma-bridge-execution.txt)
+* **Source Implementation:** [`tools/gemma_odin_bridge.py`](../tools/gemma_odin_bridge.py)
+* **Supporting Raw Evidence:** [`peer-review/evidence/gemma-bridge-execution.txt`](evidence/gemma-bridge-execution.txt)
 * **Reproduction Command:** `python3 tools/gemma_odin_bridge.py`
 * **Assurance Status:** **`REPRODUCED`**
 

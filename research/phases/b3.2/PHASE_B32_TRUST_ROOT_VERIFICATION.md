@@ -67,7 +67,7 @@ To maintain rigorous scientific reproducibility while establishing a realistic p
 
 ### 2. Empirical Verification Evidence
 
-The test suite [`tests/test_authority_isolation.py`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel/tests/test_authority_isolation.py) was updated and executed to verify both modes across 12 test cases:
+The test suite [`tests/test_authority_isolation.py`](../../../tests/test_authority_isolation.py) was updated and executed to verify both modes across 12 test cases:
 
 | Test ID | Test Description | Authority Mode | Injected Condition | Result |
 | :---: | :--- | :---: | :--- | :---: |

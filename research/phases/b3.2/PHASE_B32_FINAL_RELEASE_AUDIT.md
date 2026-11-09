@@ -85,7 +85,7 @@ The Z3 SMT models (`formal/*.smt2`) were analyzed and tested with controlled mod
 
 ### 7. Evidence Verifier Adversarial Testing
 
-The external Layer B verifier (`tools/verify_evidence.py`) was subjected to 10 adversarial tamper attacks ([`tests/test_evidence_verifier_adversarial.py`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel/tests/test_evidence_verifier_adversarial.py)):
+The external Layer B verifier (`tools/verify_evidence.py`) was subjected to 10 adversarial tamper attacks ([`tests/test_evidence_verifier_adversarial.py`](../../../tests/test_evidence_verifier_adversarial.py)):
 - Forged PASS labels on failing measurements $\rightarrow$ Rejected (`ValueError("FORGED PASS DETECTED")`).
 - Altered readback values $\rightarrow$ Rejected.
 - Sequence gaps and duplicate receipts $\rightarrow$ Rejected.

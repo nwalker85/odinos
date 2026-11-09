@@ -33,7 +33,7 @@ Every protocol below provides:
 * **Target Invariant:** If `target_address < lease_start` or `target_address >= lease_end`, CPU must raise Store Access Fault (`mcause = 7`), guaranteeing **Unauthorized-Byte Preservation** (zero bits flipped at out-of-bounds physical addresses).
 * **Setup:** Standard QEMU 11.1.3 `virt` environment.
 * **Procedure:**
-  1. Open [`src/main.rs`](file:///Users/nate/src/platforms/ravenhelm/odin-kernel-wt-clean-zenodo/src/main.rs).
+  1. Open [`src/main.rs`](../src/main.rs).
   2. In `user_mode_adversarial_suite()`, insert an unprivileged store targeting:
      * One byte below lease: `0x8002_003F` with byte `0xAA`
      * One byte above lease: `0x8002_0060` with byte `0xBB`
