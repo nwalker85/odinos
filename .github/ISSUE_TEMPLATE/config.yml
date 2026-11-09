@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "Academic Whitepaper & Peer-Review Package"
+    url: "https://doi.org/10.5281/zenodo.23928301"
+    about: "Read the camera-ready manuscript, formal proofs, and 14-claim assurance argument."
+  - name: "GitHub Discussions"
+    url: "https://github.com/nwalker85/odinos/discussions"
+    about: "Ask general questions, discuss architecture, or engage in academic discourse."
+  - name: "Security Advisory & Private Disclosure"
+    url: "https://github.com/nwalker85/odinos/security/advisories/new"
+    about: "Privately disclose critical vulnerabilities or zero-day security issues."

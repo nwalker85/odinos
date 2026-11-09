@@ -1,0 +1,91 @@
+name: "Independent Falsification Report"
+description: "Submit counter-evidence, test discrepancies, or security boundary falsification attempts."
+title: "[Falsification]: <Short summary of boundary or invariant challenge>"
+labels: ["peer-review", "falsification-attempt"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Independent Peer-Review Falsification Submission
+        Thank you for rigorously auditing Odin OS. This template is designed for researchers attempting to falsify our technical claims per the [Falsification Protocols](peer-review/FALSIFICATION_PROTOCOLS.md) and [Claims Registry](peer-review/CLAIMS_AND_EVIDENCE.md).
+
+  - type: dropdown
+    id: target_claim
+    attributes:
+      label: Target Claim Under Scrutiny
+      description: Select the specific technical claim you are attempting to falsify.
+      options:
+        - "ODIN-C001: Boundary Fault Isolation & Byte Preservation (Priority)"
+        - "ODIN-C002: PDP Authority Isolation (Process Boundary)"
+        - "ODIN-C003: Pure #![no_std] Ed25519 Verification"
+        - "ODIN-C004: Anti-Replay Monotonic Sequence Nonce"
+        - "ODIN-C005: Bi-Directional W^X Privilege Separation"
+        - "ODIN-C006: Dynamic Temporal Capability Lease Revocation"
+        - "ODIN-C007: Privileged CSR & MMIO Perimeter Isolation"
+        - "ODIN-C008: Multi-Byte Protection Boundary Crossing"
+        - "ODIN-C009: Bounded Integer Offset Arithmetic Wrapping"
+        - "ODIN-C010: Layer B External Trace & Receipt Audit"
+        - "ODIN-C011: Shadow AST Staging & In-Kernel Commit"
+        - "ODIN-C012: Decoupling of Hardware Capability from Business Appropriateness"
+        - "ODIN-C013: Prompt Injection Deflection with Gemma 4"
+        - "ODIN-C014: Physical Silicon & Hardware Timer Migration"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: protocol_used
+    attributes:
+      label: Protocol Executed
+      description: Select the protocol executed, or specify custom.
+      options:
+        - "PROTO-01: Boundary Fault Isolation Verification"
+        - "PROTO-02: Misaligned Multi-Byte Boundary Crossing"
+        - "PROTO-03: Dynamic Lease Revocation Latency & Enforceability"
+        - "PROTO-04: Bi-Directional W^X Privilege Separation"
+        - "PROTO-05: Privileged CSR & MMIO Isolation"
+        - "PROTO-06: Cryptographic Signature Forgery & Key Isolation"
+        - "PROTO-07: Monotonic Sequence Counter Anti-Replay"
+        - "PROTO-08: Arithmetic Overflow & Integer Bounds Proof"
+        - "PROTO-09: PDP/PEP Semantic Assurance Decoupling"
+        - "PROTO-10: Layer B Independent Trace & Verifier Fuzzing"
+        - "PROTO-11: LLM Jailbreak Deflection & Hardware Confinement"
+        - "PROTO-12: Full Release Pipeline & Deterministic PDF Gate"
+        - "Custom Protocol / Novel Attack Vector"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_vs_observed
+    attributes:
+      label: Expected vs. Observed Behavior
+      description: Clearly describe what the claim promised vs. what your experiment observed.
+      placeholder: |
+        Expected: Instruction commits to address 0x8002003F triggers Store Access Fault (mcause = 7) and memory byte remains 0x00.
+        Observed: Byte 0x8002003F was mutated to 0xAA without a CPU trap.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: Reproduction Steps & Code Diff
+      description: Provide the exact minimal code change, test vector, or terminal command to reproduce your finding.
+      placeholder: |
+        1. Modify `src/main.rs:600` to insert store instruction...
+        2. Run `cargo run --release`
+        3. Inspect serial console output and target memory address.
+    validations:
+      required: true
+
+  - type: textarea
+    id: execution_environment
+    attributes:
+      label: Execution Environment
+      description: Architecture, QEMU version, host OS, and Rust toolchain details.
+      value: |
+        - Host OS:
+        - Rustc / Cargo Version:
+        - QEMU Version:
+        - Hardware (if physical silicon):
+    validations:
+      required: true

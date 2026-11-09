@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use or reference Odin OS in your research, please cite it as below."
+title: "Odin OS: Cryptographically Authorized Memory Mutation in a RISC-V PMP-Enforced Agent Execution Environment"
+authors:
+  - family-names: Walker
+    given-names: Nathan
+    orcid: "https://orcid.org/0009-0005-0965-4424"
+    affiliation: "Ravenhelm Platform & Runestack Research"
+version: "0.1.0-rc.b32"
+doi: "10.5281/zenodo.23928301"
+date-released: "2026-11-07"
+license: "Apache-2.0"
+repository-code: "https://github.com/nwalker85/odinos"
+url: "https://doi.org/10.5281/zenodo.23928301"
+abstract: >-
+  Odin OS is a bare-metal, zero-allocation (#![no_std]) 64-bit RISC-V microkernel
+  investigating cryptographically authorized memory mutation for autonomous AI agents.
+  By coupling cache-line aligned Ed25519-signed TransitionDeeds with hardware Physical
+  Memory Protection (PMP) comparators, Odin OS enforces physical wordline gating (WE=0)
+  against unauthorized agent mutations at memory-bus speeds.
+keywords:
+  - risc-v
+  - microkernel
+  - physical-memory-protection
+  - pmp
+  - capability-based-security
+  - ai-safety
+  - autonomous-agents
+  - formal-verification
+  - smt

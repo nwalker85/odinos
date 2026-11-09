@@ -1,7 +1,8 @@
 # Odin OS: Cryptographically Authorized Memory Mutation in a RISC-V PMP Environment
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23928301.svg)](https://doi.org/10.5281/zenodo.23928301)
-[![Phase](https://img.shields.io/badge/Release-Phase%20B.3.2-blue.svg)](https://github.com/nwalker85/odinos)
+[![CI](https://github.com/nwalker85/odinos/actions/workflows/ci.yml/badge.svg)](https://github.com/nwalker85/odinos/actions/workflows/ci.yml)
+[![Discussions](https://img.shields.io/badge/Discussions-Active-purple.svg)](https://github.com/nwalker85/odinos/discussions)
 [![Target](https://img.shields.io/badge/Target-riscv64gc--unknown--none--elf-informational.svg)](https://github.com/nwalker85/odinos)
 [![Formal Proofs](https://img.shields.io/badge/Z3%20SMT-5.3.1%20Verified%20(unsat)-success.svg)](formal/)
 [![Mutation Testing](https://img.shields.io/badge/Mutants-15%2F15%20Killed-success.svg)](research/phases/b3/PHASE_B3_MUTATION_REPORT.md)

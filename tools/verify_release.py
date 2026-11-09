@@ -45,12 +45,25 @@ def compute_sha256(path: str) -> str:
             h.update(chunk)
     return h.hexdigest()
 
+def get_host_target():
+    try:
+        out = subprocess.check_output(["rustc", "-vV"]).decode()
+        for line in out.splitlines():
+            if line.startswith("host:"):
+                return line.split(":")[1].strip()
+    except Exception:
+        pass
+    return "aarch64-apple-darwin"
+
 def main():
     print("═" * 76)
     print("ODIN OS PHASE B.3.2 — CANONICAL RELEASE VERIFICATION PIPELINE")
     print("═" * 76)
     print(f"Repository Root: {REPO_ROOT}")
     print(f"Timestamp:       {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}")
+    
+    host_target = get_host_target()
+    print(f"Host Target:     {host_target}")
     
     report = {
         "timestamp": time.time(),
@@ -59,7 +72,7 @@ def main():
     }
     
     steps = [
-        ("Host Unit Tests (23 cases)", ["cargo", "test", "--lib", "--target", "aarch64-apple-darwin"], None),
+        ("Host Unit Tests (23 cases)", ["cargo", "test", "--lib", "--target", host_target], None),
         ("Microkernel Compilation (riscv64gc)", ["cargo", "build", "--release", "--target", "riscv64gc-unknown-none-elf"], None),
         ("QEMU Adversarial Matrix (17 cases)", ["cargo", "run", "--release"], None),
         ("Authority Isolation Suite (12 cases)", ["python3", "-m", "unittest", "tests/test_authority_isolation.py"], None),
