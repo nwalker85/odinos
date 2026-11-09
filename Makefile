@@ -31,4 +31,4 @@ verify-release:
 
 clean:
 	cargo clean
-	rm -f release_verification_report.json
+	rm -f tools/release_verification_report.json

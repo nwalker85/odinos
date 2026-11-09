@@ -81,7 +81,7 @@ def main():
     if not all_passed:
         print("\n❌ RELEASE VERIFICATION HALTED ON FAILED GATE.")
         report["decision"] = "NO-GO"
-        with open(os.path.join(REPO_ROOT, "release_verification_report.json"), "w") as f:
+        with open(os.path.join(REPO_ROOT, "tools", "release_verification_report.json"), "w") as f:
             json.dump(report, f, indent=2)
         sys.exit(1)
 
@@ -118,7 +118,7 @@ def main():
     report["artifact_hashes"] = hashes
     report["decision"] = "GO" if all_passed else "NO-GO"
     
-    out_path = os.path.join(REPO_ROOT, "release_verification_report.json")
+    out_path = os.path.join(REPO_ROOT, "tools", "release_verification_report.json")
     with open(out_path, "w") as f:
         json.dump(report, f, indent=2)
     print(f"\n[REPORT] Machine-readable verification written to: {out_path}")

@@ -4,7 +4,7 @@
 [![Phase](https://img.shields.io/badge/Release-Phase%20B.3.2-blue.svg)](https://github.com/nwalker85/odinos)
 [![Target](https://img.shields.io/badge/Target-riscv64gc--unknown--none--elf-informational.svg)](https://github.com/nwalker85/odinos)
 [![Formal Proofs](https://img.shields.io/badge/Z3%20SMT-5.3.1%20Verified%20(unsat)-success.svg)](formal/)
-[![Mutation Testing](https://img.shields.io/badge/Mutants-15%2F15%20Killed-success.svg)](PHASE_B3_MUTATION_REPORT.md)
+[![Mutation Testing](https://img.shields.io/badge/Mutants-15%2F15%20Killed-success.svg)](research/phases/b3/PHASE_B3_MUTATION_REPORT.md)
 [![License](https://img.shields.io/badge/License-Apache--2.0%20%2F%20CC--BY--4.0-brightgreen.svg)](LICENSE)
 
 **Odin OS** is a bare-metal, zero-allocation (`#![no_std]`) 64-bit RISC-V microkernel that anchors autonomous AI agent capability boundaries in processor Physical Memory Protection (PMP) comparators. 
@@ -118,12 +118,14 @@ make verify-release
 ### Primary Research Manuscript & Technical Audits
 * [`zenodo/odin-os-whitepaper.pdf`](zenodo/odin-os-whitepaper.pdf) — Complete 6-page publication whitepaper manuscript.
 * [`zenodo/odin-os-whitepaper.typ`](zenodo/odin-os-whitepaper.typ) — Typst source for the whitepaper.
-* [`PHASE_B32_CLAIM_EVIDENCE_MATRIX.md`](PHASE_B32_CLAIM_EVIDENCE_MATRIX.md) — Granular publication audit baseline.
-* [`PHASE_B32_ADVERSARIAL_REVIEW.md`](PHASE_B32_ADVERSARIAL_REVIEW.md) — Hostile peer review defense covering 14 academic rejection grounds.
-* [`PHASE_B31_PMP_ATOMICITY.md`](PHASE_B31_PMP_ATOMICITY.md) — Deep architectural analysis of split-bus accesses across protection boundaries under RISC-V ISA §2.6.
-* [`PHASE_B3_MUTATION_REPORT.md`](PHASE_B3_MUTATION_REPORT.md) — 15 architectural and cryptographic mutations injected and killed (15/15).
 * [`formal/`](formal/) — Machine-checked Z3 SMT specifications for deed bounds and sequence monotonicity.
 * [`tools/verify_release.py`](tools/verify_release.py) — Automated gate verifier ensuring clean-room reproducibility.
+* [`research/README.md`](research/README.md) — Master index of all 34 historical phase audits, mutation logs, and hardware evaluations.
+  * [`research/phases/b3.2/PHASE_B32_CLAIM_EVIDENCE_MATRIX.md`](research/phases/b3.2/PHASE_B32_CLAIM_EVIDENCE_MATRIX.md) — Granular publication audit baseline.
+  * [`research/phases/b3.2/PHASE_B32_ADVERSARIAL_REVIEW.md`](research/phases/b3.2/PHASE_B32_ADVERSARIAL_REVIEW.md) — Hostile peer review defense covering 14 academic rejection grounds.
+  * [`research/phases/b3.1/PHASE_B31_PMP_ATOMICITY.md`](research/phases/b3.1/PHASE_B31_PMP_ATOMICITY.md) — Deep architectural analysis of split-bus accesses across protection boundaries under RISC-V ISA §2.6.
+  * [`research/phases/b3/PHASE_B3_MUTATION_REPORT.md`](research/phases/b3/PHASE_B3_MUTATION_REPORT.md) — 15 architectural and cryptographic mutations injected and killed (15/15).
+  * [`research/hardware/HARDWARE_JUSTIFICATION_KRIA_KV260.md`](research/hardware/HARDWARE_JUSTIFICATION_KRIA_KV260.md) — Physical silicon justification and Kria KV260 carrier board specification.
 
 ---
 
