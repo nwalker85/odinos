@@ -370,7 +370,7 @@ If you identify an empirical counterexample, an unhandled hardware trap, or an i
 1. Copy the reporting template in [`peer-review/REVIEWER_FINDINGS_TEMPLATE.md`](https://github.com/nwalker85/odinos/blob/main/peer-review/REVIEWER_FINDINGS_TEMPLATE.md).
 2. Record Git commit SHA, toolchain versions, reproducer patch, and register dump (`mepc`, `mcause`, `mtval`, probed address, readback value).
 3. Submit a report via GitHub Issues: `https://github.com/nwalker85/odinos/issues` or email `nwalker85@gmail.com`.
-#text(size: 8pt, style: "italic", fill: rgb("475569"))[(Repository is private during review; uninvited tools receive HTTP 404. Reviewers may inspect the self-contained archive via Zenodo DOI 10.5281/zenodo.23928302 or request GitHub collaborator access).]
+#text(size: 8pt, style: "italic", fill: rgb("475569"))[(The upstream GitHub repository is public; immutable archival releases and frozen baselines are permanently indexed on Zenodo under Concept DOI 10.5281/zenodo.23928301).]
 
 = Artifact Provenance & Traceability
 
