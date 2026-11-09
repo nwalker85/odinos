@@ -1,5 +1,5 @@
 {
-  "timestamp": 1794088400.659286,
+  "timestamp": 1794191364.0094411,
   "target_phase": "B.3.2",
   "gates": {
     "Host Unit Tests (23 cases)": "PASS",
@@ -27,11 +27,11 @@
     },
     "peer_review_typ": {
       "path": "peer-review/peer-review.typ",
-      "sha256": "e66689179830252334cc4e2db71c474f90435f64c59ae4752f30cbadaf1783b1"
+      "sha256": "1f34c6d66381b982aefdee01a50570f29b0eb893cba8bbc1132855818d5cced6"
     },
     "peer_review_pdf": {
       "path": "peer-review/peer-review.pdf",
-      "sha256": "4d9065ba0671569fbcfe9f903089d40ae5f90db52a14c8beebc8f599a9fdd570"
+      "sha256": "739576e8a2e0848e5135512b3d1c32526f9ed4f7bce62e6dabf2282d6096de37"
     },
     "evidence_manifest": {
       "path": "peer-review/evidence-manifest.json",

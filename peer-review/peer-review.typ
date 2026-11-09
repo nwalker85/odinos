@@ -202,10 +202,10 @@ The table below catalogs all 14 technical claims across the 4 Assurance Layers:
     [`C008`], [Multi-Byte Crossing], [PEP (B)], [*QUALIFIED*], [QEMU softmmu split access check], [Matrix Test 10 (`0x8002005E`, all 4B unmodified)], [PROTO-02],
     [`C009`], [Bounded Arithmetic], [Integ (C)], [*MODEL-CHECKED*], [Rust `checked_add`; Z3 `deed_bounds_verification`], [Z3 Theorem 1 (`unsat`); `prop_deed_overflow`], [PROTO-08],
     [`C010`], [Layer B External Trace], [Integ (C)], [*REPRODUCED*], [Python verifier; `tools/verify_evidence.py`], [10 adversarial tests; `layer-b-evidence-verifier.txt`], [Audit Run],
-    [`C011`], [Shadow AST Commit], [Integ (C)], [*PROPOSED*], [Dual-buffer commit barrier specification], [Design doc only (`PHASE_B32_SEMANTIC_INTEGRITY`)], [Phase C],
+    [`C011`], [Shadow AST Commit], [Integ (C)], [*PROPOSED*], [Dual-buffer commit barrier specification], [Design doc (`research/phases/b3.2/`)], [Phase C],
     [`C012`], [Spatial != Semantic], [Seman (D)], [*ASSURANCE BOUNDARY*], [Decoupled PDP/PEP architecture], [Axiom: Spatial Access != Intent], [PROTO-09],
     [`C013`], [Prompt Injection Defense], [Seman (D)], [*REPRODUCED*], [Gemma 4 bridge; `tools/gemma_odin_bridge.py`], [Bridge Scenarios 1 & 2 (`gemma-bridge-execution.txt`)], [Bridge Run],
-    [`C014`], [Physical Hardware], [PEP (B)], [*PROPOSED*], [Kria KV260 & JH7110 roadmap], [Design doc only (`HARDWARE_JUSTIFICATION_KRIA`)], [Phase C]
+    [`C014`], [Physical Hardware], [PEP (B)], [*PROPOSED*], [Kria KV260 & JH7110 roadmap], [Design doc (`research/hardware/`)], [Phase C]
   ),
   caption: [Granular Claim-to-Evidence Matrix for Odin OS Phase B.3.2 Baseline.]
 )
