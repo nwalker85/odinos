@@ -250,12 +250,12 @@ Summary of Registered Claims:
 * **Pull Request:** [GitHub PR #10](https://github.com/nwalker85/odinos/pull/10)
 * **Permanent Archival DOI:** Concept: [`10.5281/zenodo.23928301`](https://doi.org/10.5281/zenodo.23928301) | Version 2: [`10.5281/zenodo.24044570`](https://doi.org/10.5281/zenodo.24044570)
 * **Repository Visibility & Archive Provenance Notice for External Reviewers:**
-  > The upstream GitHub repository `nwalker85/odinos` is currently maintained in **Private** visibility mode during pre-publication peer review. Consequently, unauthenticated external queries or automated integrations lacking repository collaborator permissions will receive an HTTP `404 Not Found` response from the GitHub API and web interface.
+  > The upstream GitHub repository [`nwalker85/odinos`](https://github.com/nwalker85/odinos) is open and publicly accessible. Reviewers can clone the repository, inspect live source code and commit history, review verification models, and execute automated reproducibility pipelines directly without authentication.
   >
   > **Archive Version Lineage & Cryptographic Hash Distinction:**
   > - **Zenodo Baseline Record (DOI `10.5281/zenodo.23928302`, Version 1):** Preserves the immutable Phase B.3.2 release candidate baseline (`cec5b2d3311`), containing the core microkernel, initial manuscript, and raw empirical execution receipts (`odin-os-v0.1.0-src.tar.gz`, MD5: `9caa2e1433d655fcf8d4aa3c3b2985d1`, 299,701 bytes).
   > - **Zenodo Peer-Review Record (DOI `10.5281/zenodo.24044570`, Version 2):** Extends the release baseline with the complete **Independent Peer-Review & Assurance Package** (tracked in PR #10, commits `68f45c1..HEAD`), providing the 8-page companion guide (`peer-review.pdf`), the 14-claim technical registry, the GSN assurance tree, the 10 raw evidence logs, and Apache-2.0 licensing with `NOTICE` (`odin-os-v0.1.0-src.tar.gz`, 480,886 bytes). The concept DOI `10.5281/zenodo.23928301` automatically resolves to Version 2.
   >
-  > Independent reviewers have two verification access paths:
-  > 1. **Standalone Reviewer Package:** Inspect and execute the complete, self-contained companion bundle and 8-page guide (`peer-review.pdf`) provided with the submission.
-  > 2. **Interactive Git Collaborator Access:** To inspect git commit history, branch lineage, or open PR discussions directly on GitHub, reviewers may request read collaborator access from the author (`nwalker85@gmail.com`).
+  > Independent reviewers have two complementary verification resources:
+  > 1. **Public Source Repository (GitHub):** Active development tree, commit lineage, automated GitHub Actions CI, and test execution tooling (`python3 tools/verify_release.py`).
+  > 2. **Permanent Research Archives (Zenodo):** Immutable, version-pinned releases with cryptographic checksums and frozen publication artifacts.
